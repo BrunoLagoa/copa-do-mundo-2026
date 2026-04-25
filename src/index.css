@@ -26,3 +26,22 @@
 	transform-origin: center;
 	will-change: transform, box-shadow;
 }
+
+@keyframes finalCardChampionGlow {
+	0% {
+		box-shadow: 0 0 0 rgba(250, 204, 21, 0);
+		border-color: rgba(251, 146, 60, 0.6);
+	}
+	40% {
+		box-shadow: 0 0 1rem rgba(250, 204, 21, 0.35);
+		border-color: rgba(250, 204, 21, 0.95);
+	}
+	100% {
+		box-shadow: 0 0 0 rgba(250, 204, 21, 0);
+		border-color: rgba(251, 146, 60, 0.6);
+	}
+}
+
+.final-card-champion-animate {
+	animation: finalCardChampionGlow 1000ms ease-out;
+}

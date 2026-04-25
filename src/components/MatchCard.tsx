@@ -51,8 +51,9 @@ function TeamButton({ team, isWinner, disabled, onClick, isFinal = false }: Team
 
 export function MatchCard({ match, winnerTeam, onSelectWinner, isFinal = false }: MatchCardProps) {
   const bothEmpty = match.teamA === null && match.teamB === null;
+  const finalCardWinnerAnimation = isFinal && winnerTeam ? 'final-card-champion-animate' : '';
   const cardClassName = isFinal
-    ? 'bg-gradient-to-br from-amber-50 to-white dark:from-amber-950/35 dark:to-gray-900 rounded-2xl border border-amber-300 dark:border-amber-700/70 shadow-md p-5 flex flex-col gap-2.5'
+    ? `bg-gradient-to-br from-amber-50 to-white dark:from-amber-950/35 dark:to-gray-900 rounded-2xl border border-amber-300 dark:border-amber-700/70 shadow-md p-5 flex flex-col gap-2.5 ${finalCardWinnerAnimation}`
     : 'bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3 flex flex-col gap-1.5';
   const metaClassName = isFinal
     ? 'flex items-center justify-between text-sm text-amber-700 dark:text-amber-300 mb-0.5 font-medium'
