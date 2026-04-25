@@ -16,7 +16,7 @@ export function TabNav() {
         Grupos
       </NavLink>
       <NavLink
-        to="/eliminatoria"
+        to="/knockout"
         className={({ isActive }) => `${base} ${isActive ? active : inactive}`}
       >
         Eliminatórias

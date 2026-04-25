@@ -180,9 +180,9 @@ function ScoreRoundColumn({
   );
 }
 
-// ─── EliminatoriaView ─────────────────────────────────────────────────────────
+// ─── KnockoutView ───────────────────────────────────────────────────────────
 
-export function EliminatoriaView() {
+export function KnockoutView() {
   const [scores, setScores] = useState<Record<string, MatchScore>>(loadState);
 
   // Persist whenever scores change
