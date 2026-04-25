@@ -130,6 +130,7 @@ src/
 - **Sem Context/Store** — dados 100% estáticos, sem re-renders
 - **Tuple `[Team, Team, Team, Team]`** garante 4 times por grupo em compile-time
 - **Reset em cascata via BFS** ao alterar vencedor no bracket
+- **Placares persistidos em `localStorage`** (`copa2026:eliminatoria:v1`) — estado da aba Eliminatórias sobrevive a recargas
 - **`navigator.clipboard`** requer contexto seguro (HTTPS ou localhost)
 
 ---
