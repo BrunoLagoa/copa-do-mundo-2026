@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { GROUPS } from './data/groups';
 import { Header } from './components/Header';
@@ -33,7 +33,7 @@ function SearchBar({ query, onChange }: { query: string; onChange: (v: string) =
 function AppRoutes() {
   const [query, setQuery] = useState('');
   const location = useLocation();
-  const isHome = location.pathname === '/';
+  const isHome = location.pathname === '/' || location.pathname === '/grupos';
   const isBracket = location.pathname === '/bracket' || location.pathname === '/knockout';
 
   const filteredGroups = query.trim()
@@ -49,7 +49,8 @@ function AppRoutes() {
       {isHome && <SearchBar query={query} onChange={setQuery} />}
       <main className={isBracket ? 'w-full' : 'max-w-7xl mx-auto'}>
         <Routes>
-          <Route path="/" element={<GroupGrid groups={filteredGroups} />} />
+          <Route path="/" element={<Navigate to="/grupos" replace />} />
+          <Route path="/grupos" element={<GroupGrid groups={filteredGroups} />} />
           <Route path="/bracket" element={<BracketView />} />
           <Route path="/knockout" element={<KnockoutView />} />
           <Route path="/team/:slug" element={<TeamPage />} />

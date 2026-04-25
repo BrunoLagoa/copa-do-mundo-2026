@@ -9,8 +9,7 @@ export function TabNav() {
   return (
     <nav className="flex gap-2 px-4 py-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
       <NavLink
-        to="/"
-        end
+        to="/grupos"
         className={({ isActive }) => `${base} ${isActive ? active : inactive}`}
       >
         Grupos
