@@ -19,7 +19,7 @@ export function RoundColumn({
   matchOffsetClassNames = [],
 }: RoundColumnProps) {
   const isFinalRound = round.id.includes('final') || round.label.toLowerCase() === 'final';
-  const columnClassName = isFinalRound ? 'flex flex-col gap-2 min-w-[260px]' : 'flex flex-col gap-2 min-w-[200px]';
+  const columnClassName = isFinalRound ? 'flex flex-col gap-2 min-w-[228px]' : 'flex flex-col gap-2 min-w-[188px]';
 
   return (
     <div className={columnClassName}>

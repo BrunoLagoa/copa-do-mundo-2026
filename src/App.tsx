@@ -33,6 +33,7 @@ function AppRoutes() {
   const [query, setQuery] = useState('');
   const location = useLocation();
   const isHome = location.pathname === '/';
+  const isBracket = location.pathname === '/bracket';
 
   const filteredGroups = query.trim()
     ? GROUPS.filter((g) =>
@@ -45,7 +46,7 @@ function AppRoutes() {
   return (
     <>
       {isHome && <SearchBar query={query} onChange={setQuery} />}
-      <main className="max-w-7xl mx-auto">
+      <main className={isBracket ? 'w-full' : 'max-w-7xl mx-auto'}>
         <Routes>
           <Route path="/" element={<GroupGrid groups={filteredGroups} />} />
           <Route path="/bracket" element={<BracketView />} />

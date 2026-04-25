@@ -127,13 +127,13 @@ export function BracketView() {
   const displayColumns = buildBracketColumns(derivedRounds);
 
   return (
-    <section className="p-4 md:p-6">
+    <section className="px-2 md:px-4 py-4 md:py-5">
       <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 dark:text-amber-200 dark:bg-amber-900/30 dark:border-amber-800 rounded-lg px-3 py-2 mb-4">
         ⚠ Projeção — confrontos sujeitos a alteração após fase de grupos (jul/2026).
         Clique em um time para avançá-lo na chave.
       </p>
       <div className="overflow-x-auto pb-2">
-        <div className="flex gap-4 min-w-max">
+        <div className="flex gap-3 w-max mx-auto">
           {displayColumns.map((round, index) => (
             <RoundColumn
               key={round.id}
