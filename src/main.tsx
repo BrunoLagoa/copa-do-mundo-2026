@@ -8,7 +8,7 @@ import App from './App.tsx'
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-      <BrowserRouter>
+      <BrowserRouter basename="/copa-do-mundo-2026">
         <App />
       </BrowserRouter>
     </ThemeProvider>
