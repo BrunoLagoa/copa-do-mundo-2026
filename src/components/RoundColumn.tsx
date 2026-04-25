@@ -7,6 +7,7 @@ interface RoundColumnProps {
   onSelectWinner: (matchId: string, team: BracketTeam) => void;
   topOffsetClassName?: string;
   matchesGapClassName?: string;
+  matchOffsetClassNames?: string[];
 }
 
 export function RoundColumn({
@@ -15,6 +16,7 @@ export function RoundColumn({
   onSelectWinner,
   topOffsetClassName = '',
   matchesGapClassName = 'gap-3',
+  matchOffsetClassNames = [],
 }: RoundColumnProps) {
   return (
     <div className="flex flex-col gap-2 min-w-[200px]">
@@ -22,13 +24,14 @@ export function RoundColumn({
         {round.label}
       </h3>
       <div className={`flex flex-col justify-start ${matchesGapClassName} ${topOffsetClassName}`}>
-        {round.matches.map((match) => (
-          <MatchCard
-            key={match.id}
-            match={match}
-            winnerTeam={winners[match.id] ?? null}
-            onSelectWinner={(team) => onSelectWinner(match.id, team)}
-          />
+        {round.matches.map((match, index) => (
+          <div key={match.id} className={matchOffsetClassNames[index] ?? ''}>
+            <MatchCard
+              match={match}
+              winnerTeam={winners[match.id] ?? null}
+              onSelectWinner={(team) => onSelectWinner(match.id, team)}
+            />
+          </div>
         ))}
       </div>
     </div>

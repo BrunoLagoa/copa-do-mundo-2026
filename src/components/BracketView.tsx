@@ -79,11 +79,21 @@ function buildBracketColumns(rounds: Round[]): Round[] {
 const COLUMN_LAYOUT_PRESETS = [
   { topOffset: 'pt-0', gap: 'gap-3' },
   { topOffset: 'pt-14 md:pt-16', gap: 'gap-14 md:gap-16' },
-  { topOffset: 'pt-28 md:pt-32', gap: 'gap-3' },
-  { topOffset: 'pt-28 md:pt-32', gap: 'gap-3' },
-  { topOffset: 'pt-28 md:pt-32', gap: 'gap-3' },
+  { topOffset: 'pt-36 md:pt-40', gap: 'gap-3' },
+  { topOffset: 'pt-36 md:pt-40', gap: 'gap-3' },
+  { topOffset: 'pt-36 md:pt-40', gap: 'gap-3' },
   { topOffset: 'pt-14 md:pt-16', gap: 'gap-14 md:gap-16' },
   { topOffset: 'pt-0', gap: 'gap-3' },
+] as const;
+
+const COLUMN_MATCH_OFFSETS = [
+  [],
+  ['', 'mt-24 md:mt-28'],
+  [],
+  [],
+  [],
+  ['', 'mt-24 md:mt-28'],
+  [],
 ] as const;
 
 const MATCH_INDEX = buildMatchIndex(ROUNDS);
@@ -132,6 +142,7 @@ export function BracketView() {
               onSelectWinner={handleSelectWinner}
               topOffsetClassName={COLUMN_LAYOUT_PRESETS[index]?.topOffset}
               matchesGapClassName={COLUMN_LAYOUT_PRESETS[index]?.gap}
+              matchOffsetClassNames={[...(COLUMN_MATCH_OFFSETS[index] ?? [])]}
             />
           ))}
         </div>
