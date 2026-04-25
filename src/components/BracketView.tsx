@@ -53,6 +53,39 @@ function deriveRounds(rounds: Round[], winners: Record<string, BracketTeam>): Ro
   }));
 }
 
+// Arrange columns in mirrored layout with the final centered:
+// Oitavas | Quartas | Semifinal | Final | Semifinal | Quartas | Oitavas
+function buildBracketColumns(rounds: Round[]): Round[] {
+  const byId = Object.fromEntries(rounds.map((round) => [round.id, round])) as Record<string, Round | undefined>;
+
+  const ro16 = byId.ro16;
+  const qf = byId.qf;
+  const sf = byId.sf;
+  const final = byId.final;
+
+  if (!ro16 || !qf || !sf || !final) return rounds;
+
+  return [
+    { id: 'ro16-left', label: ro16.label, matches: ro16.matches.slice(0, 4) },
+    { id: 'qf-left', label: qf.label, matches: qf.matches.slice(0, 2) },
+    { id: 'sf-left', label: sf.label, matches: sf.matches.slice(0, 1) },
+    { id: 'final-center', label: final.label, matches: final.matches },
+    { id: 'sf-right', label: sf.label, matches: sf.matches.slice(1, 2) },
+    { id: 'qf-right', label: qf.label, matches: qf.matches.slice(2, 4) },
+    { id: 'ro16-right', label: ro16.label, matches: ro16.matches.slice(4, 8) },
+  ];
+}
+
+const COLUMN_LAYOUT_PRESETS = [
+  { topOffset: 'pt-0', gap: 'gap-3' },
+  { topOffset: 'pt-14 md:pt-16', gap: 'gap-14 md:gap-16' },
+  { topOffset: 'pt-28 md:pt-32', gap: 'gap-3' },
+  { topOffset: 'pt-28 md:pt-32', gap: 'gap-3' },
+  { topOffset: 'pt-28 md:pt-32', gap: 'gap-3' },
+  { topOffset: 'pt-14 md:pt-16', gap: 'gap-14 md:gap-16' },
+  { topOffset: 'pt-0', gap: 'gap-3' },
+] as const;
+
 const MATCH_INDEX = buildMatchIndex(ROUNDS);
 
 export function BracketView() {
@@ -81,6 +114,7 @@ export function BracketView() {
   }
 
   const derivedRounds = deriveRounds(ROUNDS, winners);
+  const displayColumns = buildBracketColumns(derivedRounds);
 
   return (
     <section className="p-4 md:p-6">
@@ -90,12 +124,14 @@ export function BracketView() {
       </p>
       <div className="overflow-x-auto pb-2">
         <div className="flex gap-4 min-w-max">
-          {derivedRounds.map((round) => (
+          {displayColumns.map((round, index) => (
             <RoundColumn
               key={round.id}
               round={round}
               winners={winners}
               onSelectWinner={handleSelectWinner}
+              topOffsetClassName={COLUMN_LAYOUT_PRESETS[index]?.topOffset}
+              matchesGapClassName={COLUMN_LAYOUT_PRESETS[index]?.gap}
             />
           ))}
         </div>
