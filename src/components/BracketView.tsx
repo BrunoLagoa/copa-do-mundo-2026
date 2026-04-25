@@ -79,9 +79,9 @@ function buildBracketColumns(rounds: Round[]): Round[] {
 const COLUMN_LAYOUT_PRESETS = [
   { topOffset: 'pt-0', gap: 'gap-3' },
   { topOffset: 'pt-14 md:pt-16', gap: 'gap-14 md:gap-16' },
-  { topOffset: 'pt-36 md:pt-40', gap: 'gap-3' },
-  { topOffset: 'pt-36 md:pt-40', gap: 'gap-3' },
-  { topOffset: 'pt-36 md:pt-40', gap: 'gap-3' },
+  { topOffset: 'pt-52 md:pt-60', gap: 'gap-3' },
+  { topOffset: 'pt-52 md:pt-60', gap: 'gap-3' },
+  { topOffset: 'pt-52 md:pt-60', gap: 'gap-3' },
   { topOffset: 'pt-14 md:pt-16', gap: 'gap-14 md:gap-16' },
   { topOffset: 'pt-0', gap: 'gap-3' },
 ] as const;
