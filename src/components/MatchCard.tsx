@@ -19,6 +19,7 @@ function TeamButton({ team, isWinner, disabled, onClick, isFinal = false }: Team
   const base = isFinal
     ? 'w-full flex items-center gap-2.5 px-4 py-3 rounded-xl text-left transition-colors text-base'
     : 'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors text-sm';
+  const winnerAnimation = isFinal && isWinner ? 'final-winner-animate' : '';
   const winner = 'bg-green-50 border border-green-300 font-semibold text-green-900 dark:bg-emerald-900/30 dark:border-emerald-700 dark:text-emerald-200';
   const normal = 'bg-gray-50 border border-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700';
   const empty = 'bg-gray-50 border border-dashed border-gray-200 text-gray-400 cursor-default dark:bg-gray-800 dark:border-gray-700 dark:text-gray-500';
@@ -37,7 +38,7 @@ function TeamButton({ team, isWinner, disabled, onClick, isFinal = false }: Team
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`${base} ${isWinner ? winner : normal} ${disabled ? 'cursor-default' : 'cursor-pointer'}`}
+      className={`${base} ${isWinner ? winner : normal} ${winnerAnimation} ${disabled ? 'cursor-default' : 'cursor-pointer'}`}
     >
       <span className="text-base leading-none">{team.flag}</span>
       <span className="flex-1 truncate">{team.name}</span>
