@@ -18,8 +18,11 @@ export function RoundColumn({
   matchesGapClassName = 'gap-3',
   matchOffsetClassNames = [],
 }: RoundColumnProps) {
+  const isFinalRound = round.id.includes('final') || round.label.toLowerCase() === 'final';
+  const columnClassName = isFinalRound ? 'flex flex-col gap-2 min-w-[260px]' : 'flex flex-col gap-2 min-w-[200px]';
+
   return (
-    <div className="flex flex-col gap-2 min-w-[200px]">
+    <div className={columnClassName}>
       <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 text-center pb-1 border-b border-gray-100 dark:border-gray-700">
         {round.label}
       </h3>
@@ -30,6 +33,7 @@ export function RoundColumn({
               match={match}
               winnerTeam={winners[match.id] ?? null}
               onSelectWinner={(team) => onSelectWinner(match.id, team)}
+              isFinal={isFinalRound}
             />
           </div>
         ))}
