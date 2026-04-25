@@ -16,10 +16,16 @@ export function TabNav() {
         Grupos
       </NavLink>
       <NavLink
-        to="/bracket"
+        to="/eliminatoria"
         className={({ isActive }) => `${base} ${isActive ? active : inactive}`}
       >
         Eliminatórias
+      </NavLink>
+      <NavLink
+        to="/bracket"
+        className={({ isActive }) => `${base} ${isActive ? active : inactive}`}
+      >
+        Simulador
       </NavLink>
     </nav>
   );

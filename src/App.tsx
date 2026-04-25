@@ -6,6 +6,7 @@ import { Header } from './components/Header';
 import { GroupGrid } from './components/GroupGrid';
 import { TabNav } from './components/TabNav';
 import { BracketView } from './components/BracketView';
+import { EliminatoriaView } from './components/EliminatoriaView';
 import { TeamPage } from './components/TeamPage';
 import { PlayerPage } from './components/PlayerPage';
 
@@ -33,7 +34,7 @@ function AppRoutes() {
   const [query, setQuery] = useState('');
   const location = useLocation();
   const isHome = location.pathname === '/';
-  const isBracket = location.pathname === '/bracket';
+  const isBracket = location.pathname === '/bracket' || location.pathname === '/eliminatoria';
 
   const filteredGroups = query.trim()
     ? GROUPS.filter((g) =>
@@ -50,6 +51,7 @@ function AppRoutes() {
         <Routes>
           <Route path="/" element={<GroupGrid groups={filteredGroups} />} />
           <Route path="/bracket" element={<BracketView />} />
+          <Route path="/eliminatoria" element={<EliminatoriaView />} />
           <Route path="/team/:slug" element={<TeamPage />} />
           <Route path="/player/:teamSlug/:playerNumber" element={<PlayerPage />} />
         </Routes>
