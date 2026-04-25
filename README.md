@@ -1,7 +1,15 @@
 # 🏆 Copa do Mundo 2026
 
 > 48 seleções. 12 grupos. 1 troféu.  
-> Acompanhe a fase de grupos e monte o seu bracket da Copa FIFA 2026.
+> Acompanhe a fase de grupos, registre os placares e monte o seu bracket da Copa FIFA 2026.
+
+---
+
+## Screenshots
+
+| Grupos | Eliminatórias | Simulador |
+|---|---|---|
+| ![Grupos](docs/screenshot-groups.png) | ![Eliminatórias](docs/screenshot-knockout.png) | ![Simulador](docs/screenshot-bracket.png) |
 
 ---
 
@@ -19,7 +27,8 @@ Sem backend. Sem API. Sem frescura. Só futebol.
 |---|---|
 | 🗂 **Fase de grupos** | 12 grupos (A–L) com as 48 seleções classificadas |
 | 🔍 **Busca** | Filtre qualquer seleção pelo nome em tempo real |
-| 🏟 **Bracket interativo** | Monte o seu chaveamento das oitavas até a final |
+| 📋 **Eliminatórias** | Insira placar de cada confronto; vencedor avança automaticamente. Em caso de empate, escolha o vencedor nos pênaltis |
+| 🏟 **Simulador** | Monte o seu chaveamento das oitavas até a final selecionando os vencedores |
 | 👕 **Perfil de seleção** | Clique em qualquer time para ver elenco e resultados |
 | ⚽ **Perfil de jogador** | Estatísticas individuais com foto e posição no campo |
 | 🌙 **Tema dark/light** | Alterne manualmente pelo ícone no header |
@@ -73,11 +82,13 @@ src/
 │   ├── PlayerPage.tsx      # Perfil do jogador
 │   ├── PlayerModal.tsx     # Modal de jogador
 │   ├── FootballPitch.tsx   # Campo interativo com posições
-│   ├── BracketView.tsx     # Chaveamento eliminatório
+│   ├── KnockoutView.tsx    # Acompanhamento com placares reais
+│   ├── ScoreMatchCard.tsx  # Card de confronto com entrada de placar
+│   ├── BracketView.tsx     # Simulador de chaveamento eliminatório
 │   ├── MatchCard.tsx       # Card de confronto
 │   ├── RoundColumn.tsx     # Coluna de rodada (Oitavas/QF/SF/Final)
 │   ├── Header.tsx          # Cabeçalho com toggle de tema
-│   └── TabNav.tsx          # Navegação Grupos / Eliminatórias
+│   └── TabNav.tsx          # Navegação Grupos / Eliminatórias / Simulador
 ├── data/
 │   ├── groups.ts           # 48 seleções em 12 grupos
 │   ├── bracket.ts          # Chaveamento projetado das oitavas
@@ -106,7 +117,8 @@ src/
 | Rota | Página |
 |---|---|
 | `/` | Fase de grupos |
-| `/bracket` | Chaveamento eliminatório |
+| `/knockout` | Eliminatórias com entrada de placar |
+| `/bracket` | Simulador de chaveamento |
 | `/team/:slug` | Perfil da seleção |
 | `/player/:teamSlug/:playerNumber` | Perfil do jogador |
 

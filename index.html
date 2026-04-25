@@ -4,7 +4,34 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>tmp-app</title>
+    <title>Copa do Mundo 2026</title>
+    <!-- SPA redirect restore for GitHub Pages -->
+    <script>
+      (function () {
+        var redirect = sessionStorage.redirect;
+        delete sessionStorage.redirect;
+        if (redirect && redirect !== location.href) {
+          history.replaceState(null, null, redirect);
+        }
+        // Also handle ?p= query param from 404.html
+        var search = window.location.search;
+        if (search.indexOf('?p=/') === 0 || search.indexOf('&p=/') !== -1) {
+          var decoded = search
+            .slice(1)
+            .split('&')
+            .reduce(function (acc, part) {
+              var kv = part.split('=');
+              acc[kv[0]] = kv.slice(1).join('=').replace(/~and~/g, '&');
+              return acc;
+            }, {});
+          window.history.replaceState(
+            null,
+            null,
+            window.location.pathname + (decoded.p || '') + (decoded.q ? '?' + decoded.q : '') + window.location.hash
+          );
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
