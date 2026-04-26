@@ -55,7 +55,13 @@ export function generateStats(player: Player): PlayerStat[] {
 export function playerAvatarUrl(name: string): string {
   const photo = PLAYER_PHOTOS[name];
   if (photo) return photo;
-  return `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(name)}&backgroundColor=b6e3f4,ffd5dc,c0aede,d1d4f9&backgroundType=gradientLinear`;
+  // DiceBear adventurer — restrito a cabelos curtos (masculino)
+  const maleHair = [
+    'short01','short02','short03','short04','short05','short06','short07',
+    'short08','short09','short10','short11','short12','short13','short14',
+    'short15','short16','short17','short18','short19',
+  ].map(h => `hair[]=${h}`).join('&');
+  return `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(name)}&backgroundColor=b6e3f4,ffd5dc,c0aede,d1d4f9&backgroundType=gradientLinear&${maleHair}`;
 }
 
 

@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import type { Player } from '../types';
 import { generateStats, positionGradient, playerAvatarUrl } from '../utils/playerStats';
+import { PLAYER_PHOTOS } from '../data/playerPhotos';
 
 interface Props {
   player: Player;
@@ -14,7 +15,9 @@ interface Props {
 export default function PlayerModal({ player, teamSlug, teamFlag, onClose }: Props) {
   const navigate = useNavigate();
   const stats = generateStats(player);
+  const hasRealPhoto = Boolean(PLAYER_PHOTOS[player.name]);
   const avatarUrl = playerAvatarUrl(player.name);
+  const [imgState, setImgState] = useState<'loading' | 'loaded' | 'error'>('loading');
   const gradient = positionGradient(player.position);
   const backdropRef = useRef<HTMLDivElement>(null);
 
@@ -91,18 +94,19 @@ export default function PlayerModal({ player, teamSlug, teamFlag, onClose }: Pro
 
         {/* ── Avatar (overlaps header — fora do overflow-hidden) ── */}
         <div className="flex justify-center -mt-11 mb-3 relative z-10">
-          <div className="w-20 h-20 rounded-full border-4 border-zinc-900 overflow-hidden bg-zinc-700 shadow-xl">
+          <div className="w-20 h-20 rounded-full border-4 border-zinc-900 overflow-hidden bg-zinc-700 shadow-xl relative">
+            {/* Skeleton shimmer — visível enquanto imagem real carrega */}
+            {hasRealPhoto && imgState === 'loading' && (
+              <div className="absolute inset-0 animate-pulse bg-zinc-600" />
+            )}
             <img
               src={avatarUrl}
               alt={player.name}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                // Fallback: initials circle
-                const el = e.currentTarget;
-                el.style.display = 'none';
-                const parent = el.parentElement!;
-                parent.innerHTML = `<span class="w-full h-full flex items-center justify-center text-2xl font-black text-white bg-zinc-600">${player.name.charAt(0)}</span>`;
-              }}
+              className={`w-full h-full object-cover transition-opacity duration-300 ${
+                hasRealPhoto && imgState === 'loading' ? 'opacity-0' : 'opacity-100'
+              }`}
+              onLoad={() => setImgState('loaded')}
+              onError={() => setImgState('error')}
             />
           </div>
         </div>

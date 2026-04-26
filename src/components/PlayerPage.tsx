@@ -8,6 +8,7 @@ import {
   positionGradient,
   playerAvatarUrl,
 } from '../utils/playerStats';
+import { PLAYER_PHOTOS } from '../data/playerPhotos';
 
 interface LocationState {
   player?: Player;
@@ -32,7 +33,9 @@ export function PlayerPage() {
 
   // ALL hooks MUST be before any early return (rules-of-hooks)
   const [copied, setCopied] = useState(false);
+  const [imgState, setImgState] = useState<'loading' | 'loaded' | 'error'>('loading');
   const avatarUrl = playerAvatarUrl(player?.name ?? '');
+  const hasRealPhoto = Boolean(player?.name && PLAYER_PHOTOS[player.name]);
 
   function handleCopy() {
     navigator.clipboard.writeText(window.location.href).then(() => {
@@ -92,17 +95,19 @@ export function PlayerPage() {
         {/* Hero content */}
         <div className="relative z-10 flex flex-col items-center px-6 pt-6 pb-24">
           {/* Avatar */}
-          <div className="w-28 h-28 rounded-full border-4 border-white/20 overflow-hidden bg-zinc-700 shadow-2xl mb-4">
+          <div className="w-28 h-28 rounded-full border-4 border-white/20 overflow-hidden bg-zinc-700 shadow-2xl mb-4 relative">
+            {/* Skeleton shimmer — visível enquanto foto real carrega */}
+            {hasRealPhoto && imgState === 'loading' && (
+              <div className="absolute inset-0 animate-pulse bg-white/20 rounded-full" />
+            )}
             <img
               src={avatarUrl}
               alt={player.name}
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                const el = e.currentTarget;
-                el.style.display = 'none';
-                const parent = el.parentElement!;
-                parent.innerHTML = `<span style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2.5rem;font-weight:900;color:white;background:#52525b">${player.name.charAt(0)}</span>`;
-              }}
+              className={`w-full h-full object-cover transition-opacity duration-300 ${
+                hasRealPhoto && imgState === 'loading' ? 'opacity-0' : 'opacity-100'
+              }`}
+              onLoad={() => setImgState('loaded')}
+              onError={() => setImgState('error')}
             />
           </div>
 
