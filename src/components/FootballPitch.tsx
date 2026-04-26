@@ -144,8 +144,8 @@ export default function FootballPitch({ players, formation, teamName, onPlayerCl
 
   return (
     <section aria-label={`Formação ${formation} — ${teamName}`} className="w-full max-w-sm mx-auto select-none">
-      <h2 className="text-center text-sm font-semibold text-zinc-400 uppercase tracking-widest mb-3">
-        Formação · <span className="text-white">{formation}</span>
+      <h2 className="text-center text-sm font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-widest mb-3">
+        Formação · <span className="text-gray-900 dark:text-white">{formation}</span>
       </h2>
 
       <style>{`
@@ -348,7 +348,7 @@ export default function FootballPitch({ players, formation, teamName, onPlayerCl
         </div>
       </div>
 
-      <p className="text-center text-xs text-zinc-500 mt-2">
+      <p className="text-center text-xs text-gray-500 dark:text-zinc-500 mt-2">
         11 titulares projetados · primeiros por posição
       </p>
     </section>

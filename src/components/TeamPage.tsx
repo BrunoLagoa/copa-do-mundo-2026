@@ -56,7 +56,7 @@ export function TeamPage() {
       </div>
 
       {/* formation pitch */}
-      <div className="mb-20 bg-zinc-900 rounded-xl p-4 sm:p-6">
+      <div className="mb-20 bg-[#f9fafb] dark:bg-[#121728] rounded-xl p-4 sm:p-6">
         <FootballPitch
           players={team.players}
           formation={team.formation}
