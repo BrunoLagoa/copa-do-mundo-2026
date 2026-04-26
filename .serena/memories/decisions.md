@@ -36,6 +36,7 @@
   - Nav bar:      `bg-white`         / `dark:bg-gray-900`
   - Text primary: `text-gray-900`    / `dark:text-gray-100`
   - Text secondary:`text-gray-500`   / `dark:text-gray-400`
+  - **FootballPitch wrapper**: `bg-gray-50` / `dark:bg-[#121728]` — valor exato para alinhar com page bg dark (`#121728` ≈ `gray-900` mas ligeiramente diferente)
 
 ## Data Architecture
 - Team data split into 12 files by group: `src/data/teams/grupo-a.ts` … `grupo-l.ts`
@@ -46,11 +47,24 @@
 - Player stats are GENERATED (not stored) — see `src/utils/playerStats.ts`
   - Deterministic seed = `number*7 + name.length*13`
 
+## FootballPitch — Drag & Drop
+- Jogadores são arrastáveis no campo via **Pointer Events API** (sem dependências)
+- Estado: `overrides: Map<playerNumber, {x,y}>` — efêmero (sem persistência — decisão explícita do usuário)
+- `dragRef` (useRef) armazena estado de drag — não causa re-render por frame
+- `svgRef` usado para `getScreenCTM().inverse()` — converte coords do evento para espaço SVG
+- Clique vs drag: threshold 5px (mouse) / 10px (touch) no `pointerUp`
+- Boundary clamp: `x: 15..385`, `y: 10..510` (limites do campo)
+- `setPointerCapture` garante tracking fora do `<g>`
+- `touchAction: 'none'` no SVG previne conflito com scroll mobile
+- **Risco known**: `rotateX(28deg)` CSS no wrapper não é incluído em `getScreenCTM()` — pode causar desvio de coordenadas (a validar no browser)
+- **Pendente**: remover `onPointerUp` duplicado do `<g>` (handler centralizado no `<svg>` é suficiente)
+- Persistência futura: se necessário, usar `localStorage` com chave `copa2026:pitch-overrides:<teamSlug>`
+
 ## Components
 - `TabNav` — stateless, `NavLink`
 - `TeamRow` — `<Link to="/team/:slug">`
 - `TeamPage` — `useParams` → lookup → pitch + modal + squad table + fixtures
-- `FootballPitch` — SVG 3D pitch, CSS stagger, `onPlayerClick` + `teamSlug` props, hover ring
+- `FootballPitch` — SVG 3D pitch, CSS stagger, `onPlayerClick` + `teamSlug` props, hover ring, drag & drop (Pointer Events)
 - `PlayerModal` — `createPortal`, ESC/backdrop/× close, scroll lock (iOS fix: `position:fixed`), DiceBear avatar, generated stats bar chart, CTA → PlayerPage. Avatar is OUTSIDE `overflow-hidden` with `-mt-11 z-10` to avoid clipping.
 - `PlayerPage` — hero gradient by position, rating pill, stats grid, profile table, teammates grid
 - `Header` — contains ThemeToggler button (top-right, `absolute`)

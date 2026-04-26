@@ -110,15 +110,8 @@ export default function FootballPitch({ players, formation, teamName, onPlayerCl
 
   const { goalkeeper, lines } = result;
 
-  function toSVGCoords(e: React.PointerEvent): { x: number; y: number } {
-    const svg = svgRef.current!;
-    const pt = svg.createSVGPoint();
-    pt.x = e.clientX;
-    pt.y = e.clientY;
-    const svgP = pt.matrixTransform(svg.getScreenCTM()!.inverse());
-    return { x: svgP.x, y: svgP.y };
-  }
-
+  const VIEWBOX_W = VW;   // 400
+  const VIEWBOX_H = 520;
   const PITCH_X_MIN = 15, PITCH_X_MAX = 385;
   const PITCH_Y_MIN = 10, PITCH_Y_MAX = 510;
 
@@ -129,33 +122,61 @@ export default function FootballPitch({ players, formation, teamName, onPlayerCl
     };
   }
 
+  // Convert a screen-space delta (pixels) to SVG viewBox units.
+  // Uses getBoundingClientRect() on the SVG element — unaffected by CSS 3D
+  // transforms on ancestor elements (rotateX, perspective, etc.).
+  function screenDeltaToSVG(dx: number, dy: number): { dx: number; dy: number } {
+    const rect = svgRef.current!.getBoundingClientRect();
+    const scaleX = VIEWBOX_W / rect.width;
+    const scaleY = VIEWBOX_H / rect.height;
+    return { dx: dx * scaleX, dy: dy * scaleY };
+  }
+
   function handlePointerDown(e: React.PointerEvent, playerNumber: number, px: number, py: number) {
     e.stopPropagation();
-    const { x, y } = toSVGCoords(e);
     dragRef.current = {
       playerNumber,
-      offsetX: x - px,
-      offsetY: y - py,
-      startX: x,
-      startY: y,
+      offsetX: e.clientX,   // last known clientX (updated each move for delta tracking)
+      offsetY: e.clientY,   // last known clientY
+      startX: e.clientX,    // fixed — for click-vs-drag detection
+      startY: e.clientY,
     };
+    // Seed the override map with the player's current SVG position so the first
+    // move delta has a valid base to add to.
+    setOverrides(prev => {
+      if (prev.has(playerNumber)) return prev; // already overridden, keep it
+      return new Map(prev).set(playerNumber, { x: px, y: py });
+    });
     setDraggingPlayer(playerNumber);
     (e.currentTarget as SVGGElement).setPointerCapture(e.pointerId);
   }
 
   function handlePointerMove(e: React.PointerEvent) {
     if (!dragRef.current) return;
-    const { x, y } = toSVGCoords(e);
     const { playerNumber, offsetX, offsetY } = dragRef.current;
-    const clamped = clampCoords(x - offsetX, y - offsetY);
-    setOverrides(prev => new Map(prev).set(playerNumber, clamped));
+
+    const screenDx = e.clientX - offsetX;
+    const screenDy = e.clientY - offsetY;
+    const { dx, dy } = screenDeltaToSVG(screenDx, screenDy);
+
+    // Update last position for next delta
+    dragRef.current.offsetX = e.clientX;
+    dragRef.current.offsetY = e.clientY;
+
+    setOverrides(prev => {
+      const current = prev.get(playerNumber);
+      // current position comes from the override map; if not set yet, we need
+      // the original position — but we don't have it here. We store it on pointerDown.
+      if (!current) return prev;
+      return new Map(prev).set(playerNumber, clampCoords(current.x + dx, current.y + dy));
+    });
   }
 
   function handlePointerUp(e: React.PointerEvent, playerNumber: number, player: Player) {
     if (!dragRef.current || dragRef.current.playerNumber !== playerNumber) return;
-    const { x, y } = toSVGCoords(e);
-    const { startX, startY } = dragRef.current;
-    const dist = Math.hypot(x - startX, y - startY);
+    const totalDx = e.clientX - dragRef.current.startX;
+    const totalDy = e.clientY - dragRef.current.startY;
+    const dist = Math.hypot(totalDx, totalDy);
     dragRef.current = null;
     setDraggingPlayer(null);
     const CLICK_THRESHOLD = e.pointerType === 'touch' ? 10 : 5;
@@ -376,7 +397,6 @@ export default function FootballPitch({ players, formation, teamName, onPlayerCl
                   role={onPlayerClick ? 'button' : undefined}
                   aria-label={onPlayerClick ? player.name : undefined}
                   onPointerDown={e => handlePointerDown(e, player.number, px, py)}
-                  onPointerUp={e => handlePointerUp(e, player.number, player)}
                 >
                   {/* Hover ring */}
                   <circle

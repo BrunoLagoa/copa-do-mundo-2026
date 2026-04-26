@@ -2,12 +2,12 @@
 
 ## Snapshot atual
 
-- Execuções: 14
-- Taxa aprovação: 100%
+- Execuções: 17
+- Taxa aprovação: 94% (16/17 — execução 17 aprovada com ressalvas)
 - Taxa reprovação: 0%
-- Retrabalho médio: 0.4 (tendência de queda consistente)
-- Principal risco: regressão de dark mode ao adicionar novos componentes sem `dark:` variants
-- Tendência: melhorando
+- Retrabalho médio: 0.4
+- Principal risco: CSS 3D (`rotateX`) incompatível com `getScreenCTM()` — desvio de coordenadas em drag
+- Tendência: estável
 
 ## Histórico de execuções
 
@@ -27,6 +27,9 @@
 | 12 | Fix hooks bug PlayerPage (usePlayerPhoto antes do guard) | Aprovado | 0 |
 | 13 | Extração bracketUtils.ts + refactor BracketView + KnockoutView | Aprovado | 0 |
 | 14 | Remoção fetchPlayerPhoto/usePlayerPhoto → DiceBear-only | Aprovado | 0 |
+| 15 | Ajuste fundo campo: bg-zinc-900 → bg-gray-50 / dark:bg-[#121728] | Aprovado | 0 |
+| 16 | Cores de texto FootballPitch (title/footer) para dark-aware | Aprovado | 0 |
+| 17 | Drag & drop jogadores no FootballPitch (Pointer Events API) | Aprovado c/ ressalvas | 1 (hooks após early return) |
 
 ## Padrões observados
 - Lint captura erros menores (unused var, hooks order) antes do deploy — pipeline funciona
@@ -34,3 +37,4 @@
 - Build sempre passa após correção — sem regressões acumuladas
 - Refatorações de código puro (sem mudança visual) têm retrabalho zero consistentemente
 - Remoção de integrações externas reduz risco sem custo visual
+- CSS 3D no SVG é área de risco: transformações CSS (`rotateX`) não são visíveis para `getScreenCTM()` — pode causar desvio de coordenadas em interações baseadas em mouse/touch
