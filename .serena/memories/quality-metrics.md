@@ -2,10 +2,10 @@
 
 ## Snapshot atual
 
-- Execuções: 18
-- Taxa aprovação: 94% (17/18 aprovados; exec 17 com ressalvas, exec 18 aprovado)
+- Execuções: 19
+- Taxa aprovação: 95% (18/19 aprovados; exec 17 com ressalvas)
 - Taxa reprovação: 0%
-- Retrabalho médio: 0.38
+- Retrabalho médio: 0.36
 - Principal risco: dark mode em novos componentes sem `dark:` variants
 - Tendência: melhorando
 
@@ -31,6 +31,7 @@
 | 16 | Cores de texto FootballPitch (title/footer) para dark-aware | Aprovado | 0 |
 | 17 | Drag & drop jogadores no FootballPitch (Pointer Events API) | Aprovado c/ ressalvas | 1 (hooks após early return) |
 | 18 | Correção coordenadas drag (delta incremental + getBoundingClientRect) + remoção handler duplo | Aprovado | 0 |
+| 19 | Select dinâmico de formação em TeamPage + expansão Formation para 12 formações + ALL_FORMATIONS | Aprovado | 0 |
 
 ## Padrões observados
 - Lint captura erros menores (unused var, hooks order) antes do deploy — pipeline funciona

@@ -43,7 +43,8 @@
 - `src/data/teams/index.ts` exports `TEAMS_BY_SLUG: Record<string, TeamDetail>`
 - 23 players per team, 7 games (3 group + 4 KO as "A definir")
 - `Player.position` values: `'Goleiro' | 'Defensor' | 'Meio-campista' | 'Atacante'` (4 categories)
-- `Formation` type: `'4-3-3' | '4-4-2' | '4-2-3-1' | '3-5-2' | '3-4-3' | '5-3-2' | '4-5-1' | '4-1-4-1'`
+- `Formation` type: 12 formações — `'4-3-3' | '4-4-2' | '4-2-3-1' | '3-5-2' | '3-4-3' | '5-3-2' | '4-5-1' | '4-1-4-1' | '4-3-2-1' | '4-4-1-1' | '3-4-2-1' | '5-4-1'`
+- `ALL_FORMATIONS: Formation[]` exportado de `src/types/index.ts` — fonte única de verdade para listar formações em qualquer componente
 - Player stats are GENERATED (not stored) — see `src/utils/playerStats.ts`
   - Deterministic seed = `number*7 + name.length*13`
 
@@ -63,7 +64,7 @@
 ## Components
 - `TabNav` — stateless, `NavLink`
 - `TeamRow` — `<Link to="/team/:slug">`
-- `TeamPage` — `useParams` → lookup → pitch + modal + squad table + fixtures
+- `TeamPage` — `useParams` → lookup → formation select + pitch + modal + squad table + fixtures; `useState<Formation>` inicializado com `team?.formation ?? '4-3-3'`; select com `ALL_FORMATIONS` + marcador `✦` na formação original
 - `FootballPitch` — SVG 3D pitch, CSS stagger, `onPlayerClick` + `teamSlug` props, hover ring, drag & drop (Pointer Events)
 - `PlayerModal` — `createPortal`, ESC/backdrop/× close, scroll lock (iOS fix: `position:fixed`), DiceBear avatar, generated stats bar chart, CTA → PlayerPage. Avatar is OUTSIDE `overflow-hidden` with `-mt-11 z-10` to avoid clipping.
 - `PlayerPage` — hero gradient by position, rating pill, stats grid, profile table, teammates grid
