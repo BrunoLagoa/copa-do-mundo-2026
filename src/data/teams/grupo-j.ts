@@ -53,7 +53,7 @@ export const TEAMS_J: TeamDetail[] = [
     groupId: 'J',
     coach: 'Domenico Tedesco',
     confederation: 'UEFA',
-    formation: '3-4-3',
+    formation: '4-2-3-1',
     players: [
       { number: 1,  name: 'Thibaut Courtois',      position: 'Goleiro',       club: 'Real Madrid' },
       { number: 13, name: 'Koen Casteels',         position: 'Goleiro',       club: 'Al-Qadsiah' },

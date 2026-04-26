@@ -53,7 +53,7 @@ export const TEAMS_C: TeamDetail[] = [
     groupId: 'C',
     coach: 'Walid Regragui',
     confederation: 'CAF',
-    formation: '4-3-3',
+    formation: '4-1-4-1',
     players: [
       { number: 1,  name: 'Yassine Bounou',     position: 'Goleiro',       club: 'Al-Hilal' },
       { number: 13, name: 'Munir El Kajoui',    position: 'Goleiro',       club: 'CD Mirandés' },
@@ -131,7 +131,7 @@ export const TEAMS_C: TeamDetail[] = [
     groupId: 'C',
     coach: 'Steve Clarke',
     confederation: 'UEFA',
-    formation: '3-5-2',
+    formation: '3-4-3',
     players: [
       { number: 1,  name: 'Angus Gunn',          position: 'Goleiro',       club: 'Norwich City' },
       { number: 13, name: 'Craig Gordon',         position: 'Goleiro',       club: 'Heart of Midlothian' },

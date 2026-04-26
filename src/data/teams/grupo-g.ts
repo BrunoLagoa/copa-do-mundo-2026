@@ -92,7 +92,7 @@ export const TEAMS_G: TeamDetail[] = [
     groupId: 'G',
     coach: 'Néstor Lorenzo',
     confederation: 'CONMEBOL',
-    formation: '4-3-3',
+    formation: '4-2-3-1',
     players: [
       { number: 1,  name: 'Camilo Vargas',         position: 'Goleiro',       club: 'Atlas' },
       { number: 13, name: 'David Ospina',          position: 'Goleiro',       club: 'Al-Qadsiah' },

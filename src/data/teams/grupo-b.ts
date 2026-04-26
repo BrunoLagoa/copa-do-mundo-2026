@@ -49,7 +49,7 @@ export const TEAMS_B: TeamDetail[] = [
     groupId: 'B',
     coach: 'Sergej Barbarez',
     confederation: 'UEFA',
-    formation: '4-3-3',
+    formation: '4-2-3-1',
     players: [
       { number: 1,  name: 'Ibrahim Šehić',      position: 'Goleiro',       club: 'Konyaspor' },
       { number: 13, name: 'Nikola Vasilj',       position: 'Goleiro',       club: 'St. Pauli' },
@@ -91,7 +91,7 @@ export const TEAMS_B: TeamDetail[] = [
     groupId: 'B',
     coach: 'Marquez Lopez',
     confederation: 'AFC',
-    formation: '5-3-2',
+    formation: '4-2-3-1',
     players: [
       { number: 1,  name: 'Meshaal Barsham',    position: 'Goleiro',       club: 'Al Sadd' },
       { number: 13, name: 'Youssef Hassan',      position: 'Goleiro',       club: 'Al Duhail' },

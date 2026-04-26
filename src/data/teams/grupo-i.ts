@@ -92,7 +92,7 @@ export const TEAMS_I: TeamDetail[] = [
     groupId: 'I',
     coach: 'Edward Iordănescu',
     confederation: 'UEFA',
-    formation: '4-3-3',
+    formation: '4-4-2',
     players: [
       { number: 1,  name: 'Florin Niță',           position: 'Goleiro',       club: 'Stade Brestois' },
       { number: 13, name: 'Horațiu Moldovan',      position: 'Goleiro',       club: 'Atlético de Madrid' },

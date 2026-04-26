@@ -14,7 +14,7 @@ export const TEAMS_K: TeamDetail[] = [
     groupId: 'K',
     coach: 'Gareth Southgate',
     confederation: 'UEFA',
-    formation: '4-2-3-1',
+    formation: '4-3-3',
     players: [
       { number: 1,  name: 'Jordan Pickford',       position: 'Goleiro',       club: 'Everton' },
       { number: 13, name: 'Nick Pope',             position: 'Goleiro',       club: 'Newcastle' },
@@ -53,7 +53,7 @@ export const TEAMS_K: TeamDetail[] = [
     groupId: 'K',
     coach: 'Francesco Calzona',
     confederation: 'UEFA',
-    formation: '4-3-3',
+    formation: '4-5-1',
     players: [
       { number: 1,  name: 'Martin Dúbravka',       position: 'Goleiro',       club: 'Newcastle' },
       { number: 13, name: 'Marek Rodák',           position: 'Goleiro',       club: 'Fulham' },

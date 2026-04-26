@@ -50,7 +50,7 @@ export const TEAMS_A: TeamDetail[] = [
     groupId: 'A',
     coach: 'Hugo Broos',
     confederation: 'CAF',
-    formation: '4-4-2',
+    formation: '4-3-3',
     players: [
       { number: 1,  name: 'Ronwen Williams',    position: 'Goleiro',       club: 'Mamelodi Sundowns' },
       { number: 13, name: 'Bruce Bvuma',        position: 'Goleiro',       club: 'Kaizer Chiefs' },

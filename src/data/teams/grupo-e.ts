@@ -92,7 +92,7 @@ export const TEAMS_E: TeamDetail[] = [
     groupId: 'E',
     coach: 'Hossam Hassan',
     confederation: 'CAF',
-    formation: '4-2-3-1',
+    formation: '3-4-3',
     players: [
       { number: 1,  name: 'Mohamed Abu Gabal',    position: 'Goleiro',       club: 'Zamalek' },
       { number: 13, name: 'Essam El-Hadary',      position: 'Goleiro',       club: 'sem clube' },

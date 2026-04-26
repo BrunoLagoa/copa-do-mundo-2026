@@ -53,7 +53,7 @@ export const TEAMS_H: TeamDetail[] = [
     groupId: 'H',
     coach: 'Serhiy Rebrov',
     confederation: 'UEFA',
-    formation: '4-3-3',
+    formation: '4-1-4-1',
     players: [
       { number: 1,  name: 'Andriy Lunin',          position: 'Goleiro',       club: 'Real Madrid' },
       { number: 13, name: 'Heorhiy Bushchan',      position: 'Goleiro',       club: 'Dynamo Kyiv' },
@@ -131,7 +131,7 @@ export const TEAMS_H: TeamDetail[] = [
     groupId: 'H',
     coach: 'Patrick Kluivert',
     confederation: 'AFC',
-    formation: '4-4-2',
+    formation: '4-2-3-1',
     players: [
       { number: 1,  name: 'Ernando Ari',           position: 'Goleiro',       club: 'Persebaya' },
       { number: 13, name: 'Nadeo Argawinata',      position: 'Goleiro',       club: 'Bali United' },

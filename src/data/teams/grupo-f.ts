@@ -14,7 +14,7 @@ export const TEAMS_F: TeamDetail[] = [
     groupId: 'F',
     coach: 'Didier Deschamps',
     confederation: 'UEFA',
-    formation: '4-2-3-1',
+    formation: '4-3-3',
     players: [
       { number: 1,  name: 'Mike Maignan',         position: 'Goleiro',       club: 'AC Milan' },
       { number: 13, name: 'Brice Samba',          position: 'Goleiro',       club: 'Lens' },
@@ -92,7 +92,7 @@ export const TEAMS_F: TeamDetail[] = [
     groupId: 'F',
     coach: 'Roberto Mancini',
     confederation: 'AFC',
-    formation: '4-3-3',
+    formation: '4-2-3-1',
     players: [
       { number: 1,  name: 'Mohammed Al-Owais',    position: 'Goleiro',       club: 'Al-Hilal' },
       { number: 13, name: 'Fawaz Al-Qarni',       position: 'Goleiro',       club: 'Al-Shabab' },

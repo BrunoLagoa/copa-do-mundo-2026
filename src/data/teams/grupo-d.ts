@@ -53,7 +53,7 @@ export const TEAMS_D: TeamDetail[] = [
     groupId: 'D',
     coach: 'Ricardo Gareca',
     confederation: 'CONMEBOL',
-    formation: '3-5-2',
+    formation: '4-4-2',
     players: [
       { number: 1,  name: 'Claudio Bravo',       position: 'Goleiro',       club: 'sem clube' },
       { number: 13, name: 'Gabriel Arias',        position: 'Goleiro',       club: 'Racing Club' },

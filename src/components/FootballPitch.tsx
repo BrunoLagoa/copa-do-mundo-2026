@@ -97,6 +97,12 @@ export default function FootballPitch({ players, formation, teamName, onPlayerCl
   const dragRef = useRef<DragState | null>(null);
   const [overrides, setOverrides] = useState<Map<number, { x: number; y: number }>>(new Map());
   const [draggingPlayer, setDraggingPlayer] = useState<number | null>(null);
+  // Track the last rendered formation to detect changes and flush overrides.
+  const [activeFormation, setActiveFormation] = useState<Formation>(formation);
+  if (activeFormation !== formation) {
+    setActiveFormation(formation);
+    setOverrides(new Map());
+  }
 
   const result = pickStartingEleven(players, formation);
 
@@ -239,11 +245,11 @@ export default function FootballPitch({ players, formation, teamName, onPlayerCl
         Formação · <span className="text-gray-900 dark:text-white">{formation}</span>
       </h2>
 
-      <style>{`
+        <style>{`
         @keyframes pitchPop {
-          0%   { opacity: 0; transform: scale(0.4) translateY(6px); }
-          70%  { transform: scale(1.1) translateY(-2px); }
-          100% { opacity: 1; transform: scale(1) translateY(0); }
+          0%   { opacity: 0; scale: 0.4; translate: 0 6px; }
+          70%  { scale: 1.1; translate: 0 -2px; }
+          100% { opacity: 1; scale: 1; translate: 0 0; }
         }
         .pitch-player {
           animation: pitchPop 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
@@ -389,19 +395,32 @@ export default function FootballPitch({ players, formation, teamName, onPlayerCl
               const sy = shadowRy(py);
               const lastName = player.name.split(' ').pop() ?? player.name;
 
+              // Formation-change transition: smooth slide to new position.
+              // Disabled while dragging to avoid lag. Stagger = delay * 0.5ms.
+              const transitionStyle = isDragging
+                ? undefined
+                : {
+                    transition: `transform 420ms cubic-bezier(0.4, 0, 0.2, 1)`,
+                    transitionDelay: `${delay * 0.5}ms`,
+                  };
+
               return (
                 <g
                   key={player.number}
                   className={`pitch-player${onPlayerClick ? ' clickable' : ''}${isDragging ? ' dragging' : ''}`}
-                  style={{ animationDelay: `${delay}ms` }}
+                  style={{
+                    transform: `translate(${px}px, ${py}px)`,
+                    animationDelay: `${delay}ms`,
+                    ...transitionStyle,
+                  }}
                   role={onPlayerClick ? 'button' : undefined}
                   aria-label={onPlayerClick ? player.name : undefined}
                   onPointerDown={e => handlePointerDown(e, player.number, px, py)}
                 >
-                  {/* Hover ring */}
+                  {/* Hover ring — centred at (0,0) in group space */}
                   <circle
                     className="player-hover-ring"
-                    cx={px} cy={py} r={r + 6}
+                    cx={0} cy={0} r={r + 6}
                     fill="none"
                     stroke="rgba(255,255,255,0.7)"
                     strokeWidth={2}
@@ -409,23 +428,23 @@ export default function FootballPitch({ players, formation, teamName, onPlayerCl
                     style={{ transition: 'opacity 0.15s' }}
                   />
                   {/* Drop shadow */}
-                  <ellipse cx={px} cy={py + r + 2} rx={sx} ry={sy} fill="rgba(0,0,0,0.35)" />
+                  <ellipse cx={0} cy={r + 2} rx={sx} ry={sy} fill="rgba(0,0,0,0.35)" />
                   {/* Circle */}
                   <circle
-                    cx={px} cy={py} r={r}
+                    cx={0} cy={0} r={r}
                     fill={isGK ? 'url(#gkGrad)' : 'url(#playerGrad)'}
                     stroke="rgba(255,255,255,0.9)"
                     strokeWidth={1.5}
                   />
                   {/* Highlight gloss */}
                   <ellipse
-                    cx={px - r * 0.22} cy={py - r * 0.3}
+                    cx={-r * 0.22} cy={-r * 0.3}
                     rx={r * 0.38} ry={r * 0.22}
                     fill="rgba(255,255,255,0.28)"
                   />
                   {/* Number */}
                   <text
-                    x={px} y={py + 0.5}
+                    x={0} y={0.5}
                     textAnchor="middle"
                     dominantBaseline="middle"
                     fontSize={fs}
@@ -437,7 +456,7 @@ export default function FootballPitch({ players, formation, teamName, onPlayerCl
                   </text>
                   {/* Name label */}
                   <text
-                    x={px} y={py + r + 5}
+                    x={0} y={r + 5}
                     textAnchor="middle"
                     dominantBaseline="hanging"
                     fontSize={ls}
