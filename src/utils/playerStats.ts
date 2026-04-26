@@ -1,4 +1,5 @@
 import type { Player } from '../types';
+import { PLAYER_PHOTOS } from '../data/playerPhotos';
 
 export interface PlayerStat {
   label: string;
@@ -52,6 +53,8 @@ export function generateStats(player: Player): PlayerStat[] {
 }
 
 export function playerAvatarUrl(name: string): string {
+  const photo = PLAYER_PHOTOS[name];
+  if (photo) return photo;
   return `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(name)}&backgroundColor=b6e3f4,ffd5dc,c0aede,d1d4f9&backgroundType=gradientLinear`;
 }
 
