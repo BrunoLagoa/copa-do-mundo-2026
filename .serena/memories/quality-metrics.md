@@ -2,12 +2,12 @@
 
 ## Snapshot atual
 
-- Execuções: 17
-- Taxa aprovação: 94% (16/17 — execução 17 aprovada com ressalvas)
+- Execuções: 18
+- Taxa aprovação: 94% (17/18 aprovados; exec 17 com ressalvas, exec 18 aprovado)
 - Taxa reprovação: 0%
-- Retrabalho médio: 0.4
-- Principal risco: CSS 3D (`rotateX`) incompatível com `getScreenCTM()` — desvio de coordenadas em drag
-- Tendência: estável
+- Retrabalho médio: 0.38
+- Principal risco: dark mode em novos componentes sem `dark:` variants
+- Tendência: melhorando
 
 ## Histórico de execuções
 
@@ -30,6 +30,7 @@
 | 15 | Ajuste fundo campo: bg-zinc-900 → bg-gray-50 / dark:bg-[#121728] | Aprovado | 0 |
 | 16 | Cores de texto FootballPitch (title/footer) para dark-aware | Aprovado | 0 |
 | 17 | Drag & drop jogadores no FootballPitch (Pointer Events API) | Aprovado c/ ressalvas | 1 (hooks após early return) |
+| 18 | Correção coordenadas drag (delta incremental + getBoundingClientRect) + remoção handler duplo | Aprovado | 0 |
 
 ## Padrões observados
 - Lint captura erros menores (unused var, hooks order) antes do deploy — pipeline funciona
@@ -37,4 +38,4 @@
 - Build sempre passa após correção — sem regressões acumuladas
 - Refatorações de código puro (sem mudança visual) têm retrabalho zero consistentemente
 - Remoção de integrações externas reduz risco sem custo visual
-- CSS 3D no SVG é área de risco: transformações CSS (`rotateX`) não são visíveis para `getScreenCTM()` — pode causar desvio de coordenadas em interações baseadas em mouse/touch
+- CSS 3D no SVG: `getScreenCTM()` não enxerga `rotateX` CSS — usar **deltas incrementais + `getBoundingClientRect()`** para drag em SVG com perspectiva CSS. Padrão validado e aplicado.

@@ -56,8 +56,8 @@
 - Boundary clamp: `x: 15..385`, `y: 10..510` (limites do campo)
 - `setPointerCapture` garante tracking fora do `<g>`
 - `touchAction: 'none'` no SVG previne conflito com scroll mobile
-- **Risco known**: `rotateX(28deg)` CSS no wrapper não é incluído em `getScreenCTM()` — pode causar desvio de coordenadas (a validar no browser)
-- **Pendente**: remover `onPointerUp` duplicado do `<g>` (handler centralizado no `<svg>` é suficiente)
+- **Técnica de coordenadas**: NÃO usar `getScreenCTM()` — invisível para CSS 3D. Usar **deltas incrementais**: `Δclient = e.clientX - lastClientX`; converter para SVG units via `getBoundingClientRect()` (`scaleX = viewBoxW / rect.width`). `getBoundingClientRect()` retorna tamanho visual real, imune a `rotateX`/`perspective`.
+- `onPointerUp` centralizado apenas no `<svg>` — `setPointerCapture` garante entrega mesmo fora do `<g>`
 - Persistência futura: se necessário, usar `localStorage` com chave `copa2026:pitch-overrides:<teamSlug>`
 
 ## Components
