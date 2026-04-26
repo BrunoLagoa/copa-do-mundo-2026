@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { TEAMS_BY_SLUG } from '../data/teams';
-import type { Player } from '../types';
+import type { Formation, Player } from '../types';
+import { ALL_FORMATIONS } from '../types';
 import FootballPitch from './FootballPitch';
 import PlayerModal from './PlayerModal';
 
@@ -9,6 +10,9 @@ export function TeamPage() {
   const { slug } = useParams<{ slug: string }>();
   const team = slug ? TEAMS_BY_SLUG[slug] : undefined;
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [selectedFormation, setSelectedFormation] = useState<Formation>(
+    team?.formation ?? '4-3-3'
+  );
 
   if (!team) {
     return (
@@ -57,9 +61,29 @@ export function TeamPage() {
 
       {/* formation pitch */}
       <div className="mb-20 bg-gray-50 dark:bg-[#121728] rounded-xl p-4 sm:p-6">
+        <div className="flex items-center gap-2 mb-3">
+          <label
+            htmlFor="formation-select"
+            className="text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            Formação:
+          </label>
+          <select
+            id="formation-select"
+            value={selectedFormation}
+            onChange={(e) => setSelectedFormation(e.target.value as Formation)}
+            className="text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            {ALL_FORMATIONS.map((f) => (
+              <option key={f} value={f}>
+                {f}{f === team.formation ? ' ✦' : ''}
+              </option>
+            ))}
+          </select>
+        </div>
         <FootballPitch
           players={team.players}
-          formation={team.formation}
+          formation={selectedFormation}
           teamName={team.team.name}
           teamSlug={team.slug}
           onPlayerClick={(p) => setSelectedPlayer(p)}

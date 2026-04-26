@@ -46,7 +46,34 @@ export interface TeamGame {
   result: 'V' | 'E' | 'D' | null;
 }
 
-export type Formation = '4-3-3' | '4-4-2' | '4-2-3-1' | '3-5-2' | '3-4-3' | '5-3-2' | '4-5-1' | '4-1-4-1';
+export type Formation =
+  | '4-3-3'
+  | '4-4-2'
+  | '4-2-3-1'
+  | '3-5-2'
+  | '3-4-3'
+  | '5-3-2'
+  | '4-5-1'
+  | '4-1-4-1'
+  | '4-3-2-1'
+  | '4-4-1-1'
+  | '3-4-2-1'
+  | '5-4-1';
+
+export const ALL_FORMATIONS: Formation[] = [
+  '4-3-3',
+  '4-4-2',
+  '4-2-3-1',
+  '3-5-2',
+  '3-4-3',
+  '5-3-2',
+  '4-5-1',
+  '4-1-4-1',
+  '4-3-2-1',
+  '4-4-1-1',
+  '3-4-2-1',
+  '5-4-1',
+];
 
 export interface TeamDetail {
   slug: string;           // ex: "brasil" — usado na URL
