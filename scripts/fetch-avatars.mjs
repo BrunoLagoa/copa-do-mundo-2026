@@ -156,19 +156,43 @@ ${entries}
 `;
 }
 
+// ─── Leitura do mapa já existente ────────────────────────────────────────────
+
+function loadExistingPhotos() {
+  try {
+    const content = readFileSync(OUTPUT_FILE, 'utf-8');
+    const existing = {};
+    const re = /"([^"]+)":\s*"([^"]+)"/g;
+    let m;
+    while ((m = re.exec(content)) !== null) {
+      existing[m[1]] = m[2];
+    }
+    return existing;
+  } catch {
+    return {};
+  }
+}
+
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 async function main() {
   console.log('🔍 Extraindo nomes dos jogadores...');
-  const names = getAllPlayerNames();
-  console.log(`📋 ${names.length} jogadores únicos encontrados.\n`);
+  const allNames = getAllPlayerNames();
+  console.log(`📋 ${allNames.length} jogadores únicos encontrados.`);
 
-  const photoMap = {};
+  const existingPhotos = loadExistingPhotos();
+  const alreadyMapped = Object.keys(existingPhotos).length;
+
+  const pending = allNames.filter((n) => !existingPhotos[n]);
+  console.log(`✔️  ${alreadyMapped} já mapeados — buscando ${pending.length} restantes.\n`);
+
+  // Começa com o mapa existente para preservar entradas manuais e já buscadas
+  const photoMap = { ...existingPhotos };
   let found = 0;
 
-  for (let i = 0; i < names.length; i++) {
-    const name = names[i];
-    const photo = await resolvePhoto(name, i + 1, names.length);
+  for (let i = 0; i < pending.length; i++) {
+    const name = pending[i];
+    const photo = await resolvePhoto(name, i + 1, pending.length);
     if (photo) {
       photoMap[name] = photo;
       found++;
@@ -177,11 +201,12 @@ async function main() {
     // Salva progresso a cada 50 jogadores
     if ((i + 1) % 50 === 0) {
       writeFileSync(OUTPUT_FILE, generateOutputFile(photoMap), 'utf-8');
-      console.log(`  💾 Progresso salvo: ${found}/${i + 1} encontrados`);
+      console.log(`  💾 Progresso salvo: ${found}/${i + 1} novos encontrados`);
     }
   }
 
-  console.log(`\n✅ Cobertura: ${found}/${names.length} jogadores (${Math.round((found / names.length) * 100)}%)`);
+  const totalMapped = Object.keys(photoMap).length;
+  console.log(`\n✅ Novos: ${found}/${pending.length} | Total mapeado: ${totalMapped}/${allNames.length} (${Math.round((totalMapped / allNames.length) * 100)}%)`);
 
   const output = generateOutputFile(photoMap);
   writeFileSync(OUTPUT_FILE, output, 'utf-8');

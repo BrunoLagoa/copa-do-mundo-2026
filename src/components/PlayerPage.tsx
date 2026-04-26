@@ -16,6 +16,56 @@ interface LocationState {
   teamFlag?: string;
 }
 
+interface TeammateCardProps {
+  tm: Player;
+  teamSlug: string;
+  teamFlag: string;
+  onNavigate: (path: string, state: object) => void;
+}
+
+function TeammateCard({ tm, teamSlug, teamFlag, onNavigate }: TeammateCardProps) {
+  const [imgState, setImgState] = useState<'loading' | 'loaded' | 'error'>('loading');
+  const src = playerAvatarUrl(tm.name);
+  const hasRealPhoto = Boolean(PLAYER_PHOTOS[tm.name]);
+
+  return (
+    <button
+      onClick={() =>
+        onNavigate(`/player/${teamSlug}/${tm.number}`, {
+          player: tm, teamSlug, teamFlag,
+        })
+      }
+      className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:border-gray-400 dark:hover:border-zinc-600 rounded-xl p-3 flex items-center gap-3 text-left transition-all active:scale-95"
+    >
+      <div className="w-10 h-10 rounded-full overflow-hidden bg-zinc-700 flex-shrink-0 relative">
+        {/* Skeleton shimmer while real photo loads */}
+        {hasRealPhoto && imgState === 'loading' && (
+          <div className="absolute inset-0 animate-pulse bg-white/20 rounded-full" />
+        )}
+        {imgState !== 'error' ? (
+          <img
+            src={src}
+            alt={tm.name}
+            className={`w-full h-full object-cover transition-opacity duration-300 ${
+              hasRealPhoto && imgState === 'loading' ? 'opacity-0' : 'opacity-100'
+            }`}
+            onLoad={() => setImgState('loaded')}
+            onError={() => setImgState('error')}
+          />
+        ) : (
+          <span className="w-full h-full flex items-center justify-center font-black text-white bg-zinc-600 text-sm">
+            {tm.name.charAt(0)}
+          </span>
+        )}
+      </div>
+      <div className="min-w-0">
+        <p className="text-gray-900 dark:text-white text-xs font-semibold truncate">{tm.name}</p>
+        <p className="text-gray-500 dark:text-zinc-500 text-xs">#{tm.number} · {tm.club}</p>
+      </div>
+    </button>
+  );
+}
+
 export function PlayerPage() {
   const { teamSlug, playerNumber } = useParams<{ teamSlug: string; playerNumber: string }>();
   const location = useLocation();
@@ -228,33 +278,13 @@ export function PlayerPage() {
             </h2>
             <div className="grid grid-cols-2 gap-3">
               {teammates.map((tm) => (
-                <button
+                <TeammateCard
                   key={tm.number}
-                  onClick={() =>
-                    navigate(`/player/${teamSlug}/${tm.number}`, {
-                      state: { player: tm, teamSlug, teamFlag },
-                    })
-                  }
-                  className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:border-gray-400 dark:hover:border-zinc-600 rounded-xl p-3 flex items-center gap-3 text-left transition-all active:scale-95"
-                >
-                  <div className="w-10 h-10 rounded-full overflow-hidden bg-zinc-700 flex-shrink-0">
-                    <img
-                      src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(tm.name)}&backgroundColor=b6e3f4,ffd5dc,c0aede,d1d4f9&backgroundType=gradientLinear`}
-                      alt={tm.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        const el = e.currentTarget;
-                        el.style.display = 'none';
-                        const p = el.parentElement!;
-                        p.innerHTML = `<span style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-weight:900;color:white;background:#52525b">${tm.name.charAt(0)}</span>`;
-                      }}
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-gray-900 dark:text-white text-xs font-semibold truncate">{tm.name}</p>
-                    <p className="text-gray-500 dark:text-zinc-500 text-xs">#{tm.number} · {tm.club}</p>
-                  </div>
-                </button>
+                  tm={tm}
+                  teamSlug={teamSlug!}
+                  teamFlag={teamFlag}
+                  onNavigate={(path, state) => navigate(path, { state })}
+                />
               ))}
             </div>
           </section>
