@@ -1,3 +1,4 @@
+import { useState, useRef } from 'react';
 import type { Formation, Player } from '../types';
 
 // ─── Formation layout ────────────────────────────────────────────────────────
@@ -81,7 +82,22 @@ interface Props {
   onPlayerClick?: (player: Player) => void;
 }
 
+// ── Drag state interface (outside component to avoid re-declaration) ──────────
+interface DragState {
+  playerNumber: number;
+  offsetX: number;
+  offsetY: number;
+  startX: number;
+  startY: number;
+}
+
 export default function FootballPitch({ players, formation, teamName, onPlayerClick }: Props) {
+  // ── Drag & Drop state (hooks MUST be before any early return) ────────────────
+  const svgRef = useRef<SVGSVGElement>(null);
+  const dragRef = useRef<DragState | null>(null);
+  const [overrides, setOverrides] = useState<Map<number, { x: number; y: number }>>(new Map());
+  const [draggingPlayer, setDraggingPlayer] = useState<number | null>(null);
+
   const result = pickStartingEleven(players, formation);
 
   if (!result) {
@@ -93,6 +109,60 @@ export default function FootballPitch({ players, formation, teamName, onPlayerCl
   }
 
   const { goalkeeper, lines } = result;
+
+  function toSVGCoords(e: React.PointerEvent): { x: number; y: number } {
+    const svg = svgRef.current!;
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const svgP = pt.matrixTransform(svg.getScreenCTM()!.inverse());
+    return { x: svgP.x, y: svgP.y };
+  }
+
+  const PITCH_X_MIN = 15, PITCH_X_MAX = 385;
+  const PITCH_Y_MIN = 10, PITCH_Y_MAX = 510;
+
+  function clampCoords(x: number, y: number): { x: number; y: number } {
+    return {
+      x: Math.max(PITCH_X_MIN, Math.min(PITCH_X_MAX, x)),
+      y: Math.max(PITCH_Y_MIN, Math.min(PITCH_Y_MAX, y)),
+    };
+  }
+
+  function handlePointerDown(e: React.PointerEvent, playerNumber: number, px: number, py: number) {
+    e.stopPropagation();
+    const { x, y } = toSVGCoords(e);
+    dragRef.current = {
+      playerNumber,
+      offsetX: x - px,
+      offsetY: y - py,
+      startX: x,
+      startY: y,
+    };
+    setDraggingPlayer(playerNumber);
+    (e.currentTarget as SVGGElement).setPointerCapture(e.pointerId);
+  }
+
+  function handlePointerMove(e: React.PointerEvent) {
+    if (!dragRef.current) return;
+    const { x, y } = toSVGCoords(e);
+    const { playerNumber, offsetX, offsetY } = dragRef.current;
+    const clamped = clampCoords(x - offsetX, y - offsetY);
+    setOverrides(prev => new Map(prev).set(playerNumber, clamped));
+  }
+
+  function handlePointerUp(e: React.PointerEvent, playerNumber: number, player: Player) {
+    if (!dragRef.current || dragRef.current.playerNumber !== playerNumber) return;
+    const { x, y } = toSVGCoords(e);
+    const { startX, startY } = dragRef.current;
+    const dist = Math.hypot(x - startX, y - startY);
+    dragRef.current = null;
+    setDraggingPlayer(null);
+    const CLICK_THRESHOLD = e.pointerType === 'touch' ? 10 : 5;
+    if (dist < CLICK_THRESHOLD) {
+      onPlayerClick?.(player);
+    }
+  }
 
   // lines[0] = defense, lines[last] = attack, rest = midfield
   const defLine   = lines[0]   ?? [];
@@ -161,7 +231,10 @@ export default function FootballPitch({ players, formation, teamName, onPlayerCl
           opacity: 1;
         }
         .pitch-player.clickable {
-          cursor: pointer;
+          cursor: grab;
+        }
+        .pitch-player.dragging {
+          cursor: grabbing;
         }
       `}</style>
 
@@ -182,10 +255,19 @@ export default function FootballPitch({ players, formation, teamName, onPlayerCl
           }}
         >
           <svg
+            ref={svgRef}
             viewBox={`0 0 ${VW} 520`}
             className="w-full block"
             role="img"
             aria-label={`Campo de futebol com formação ${formation}`}
+            style={{ touchAction: 'none' }}
+            onPointerMove={handlePointerMove}
+            onPointerUp={e => {
+              if (dragRef.current) {
+                const player = positioned.find(p => p.player.number === dragRef.current!.playerNumber)?.player;
+                if (player) handlePointerUp(e, dragRef.current.playerNumber, player);
+              }
+            }}
           >
             <defs>
               {/* Grass gradient — darker at top (far), lighter at bottom (near) */}
@@ -273,27 +355,33 @@ export default function FootballPitch({ players, formation, teamName, onPlayerCl
             <rect x={155} y={506} width={90} height={12} fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.4)" strokeWidth={1} />
 
             {/* ── Players ── */}
-            {positioned.map(({ player, x, y, delay, isGK }) => {
-              const r  = circleR(y);
-              const fs = fontSize(y);
-              const ls = labelSize(y);
-              const sx = shadowRx(y);
-              const sy = shadowRy(y);
+            {positioned.map(({ player, x: ox, y: oy, delay, isGK }) => {
+              const override = overrides.get(player.number);
+              const px = override?.x ?? ox;
+              const py = override?.y ?? oy;
+              const isDragging = draggingPlayer === player.number;
+
+              const r  = circleR(py);
+              const fs = fontSize(py);
+              const ls = labelSize(py);
+              const sx = shadowRx(py);
+              const sy = shadowRy(py);
               const lastName = player.name.split(' ').pop() ?? player.name;
 
               return (
                 <g
                   key={player.number}
-                  className={`pitch-player${onPlayerClick ? ' clickable' : ''}`}
+                  className={`pitch-player${onPlayerClick ? ' clickable' : ''}${isDragging ? ' dragging' : ''}`}
                   style={{ animationDelay: `${delay}ms` }}
-                  onClick={() => onPlayerClick?.(player)}
                   role={onPlayerClick ? 'button' : undefined}
                   aria-label={onPlayerClick ? player.name : undefined}
+                  onPointerDown={e => handlePointerDown(e, player.number, px, py)}
+                  onPointerUp={e => handlePointerUp(e, player.number, player)}
                 >
                   {/* Hover ring */}
                   <circle
                     className="player-hover-ring"
-                    cx={x} cy={y} r={r + 6}
+                    cx={px} cy={py} r={r + 6}
                     fill="none"
                     stroke="rgba(255,255,255,0.7)"
                     strokeWidth={2}
@@ -301,23 +389,23 @@ export default function FootballPitch({ players, formation, teamName, onPlayerCl
                     style={{ transition: 'opacity 0.15s' }}
                   />
                   {/* Drop shadow */}
-                  <ellipse cx={x} cy={y + r + 2} rx={sx} ry={sy} fill="rgba(0,0,0,0.35)" />
+                  <ellipse cx={px} cy={py + r + 2} rx={sx} ry={sy} fill="rgba(0,0,0,0.35)" />
                   {/* Circle */}
                   <circle
-                    cx={x} cy={y} r={r}
+                    cx={px} cy={py} r={r}
                     fill={isGK ? 'url(#gkGrad)' : 'url(#playerGrad)'}
                     stroke="rgba(255,255,255,0.9)"
                     strokeWidth={1.5}
                   />
                   {/* Highlight gloss */}
                   <ellipse
-                    cx={x - r * 0.22} cy={y - r * 0.3}
+                    cx={px - r * 0.22} cy={py - r * 0.3}
                     rx={r * 0.38} ry={r * 0.22}
                     fill="rgba(255,255,255,0.28)"
                   />
                   {/* Number */}
                   <text
-                    x={x} y={y + 0.5}
+                    x={px} y={py + 0.5}
                     textAnchor="middle"
                     dominantBaseline="middle"
                     fontSize={fs}
@@ -329,7 +417,7 @@ export default function FootballPitch({ players, formation, teamName, onPlayerCl
                   </text>
                   {/* Name label */}
                   <text
-                    x={x} y={y + r + 5}
+                    x={px} y={py + r + 5}
                     textAnchor="middle"
                     dominantBaseline="hanging"
                     fontSize={ls}
