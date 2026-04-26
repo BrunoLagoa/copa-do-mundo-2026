@@ -2,8 +2,7 @@ import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import type { Player } from '../types';
-import { generateStats, positionGradient } from '../utils/playerStats';
-import { usePlayerPhoto } from '../hooks/usePlayerPhoto';
+import { generateStats, positionGradient, playerAvatarUrl } from '../utils/playerStats';
 
 interface Props {
   player: Player;
@@ -15,7 +14,7 @@ interface Props {
 export default function PlayerModal({ player, teamSlug, teamFlag, onClose }: Props) {
   const navigate = useNavigate();
   const stats = generateStats(player);
-  const avatarUrl = usePlayerPhoto(player.name);
+  const avatarUrl = playerAvatarUrl(player.name);
   const gradient = positionGradient(player.position);
   const backdropRef = useRef<HTMLDivElement>(null);
 

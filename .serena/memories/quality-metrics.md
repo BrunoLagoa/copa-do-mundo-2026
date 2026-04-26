@@ -2,12 +2,12 @@
 
 ## Snapshot atual
 
-- Execuções: 8
+- Execuções: 14
 - Taxa aprovação: 100%
 - Taxa reprovação: 0%
-- Retrabalho médio: 0.6 (pequenas correções por iteração)
+- Retrabalho médio: 0.4 (tendência de queda consistente)
 - Principal risco: regressão de dark mode ao adicionar novos componentes sem `dark:` variants
-- Tendência: estável
+- Tendência: melhorando
 
 ## Histórico de execuções
 
@@ -21,8 +21,16 @@
 | 6 | Padding TeamPage | Aprovado | 0 |
 | 7 | Escala de cores dark/light | Aprovado | 0 |
 | 8 | Memory save | — | — |
+| 9 | Aba Eliminatórias + EliminatoriaView + ScoreMatchCard | Aprovado | 0 |
+| 10 | Correção nome "Eliminatória" → "Eliminatórias" | Aprovado | 0 |
+| 11 | GitHub Pages config (vite base, 404.html, workflow) | Aprovado | 0 |
+| 12 | Fix hooks bug PlayerPage (usePlayerPhoto antes do guard) | Aprovado | 0 |
+| 13 | Extração bracketUtils.ts + refactor BracketView + KnockoutView | Aprovado | 0 |
+| 14 | Remoção fetchPlayerPhoto/usePlayerPhoto → DiceBear-only | Aprovado | 0 |
 
 ## Padrões observados
 - Lint captura erros menores (unused var, hooks order) antes do deploy — pipeline funciona
 - Dark mode é área de risco: novos componentes precisam checar `dark:` variants
 - Build sempre passa após correção — sem regressões acumuladas
+- Refatorações de código puro (sem mudança visual) têm retrabalho zero consistentemente
+- Remoção de integrações externas reduz risco sem custo visual

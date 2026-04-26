@@ -17,7 +17,7 @@
 
 ## Routing
 - React Router v7 with `BrowserRouter` in `main.tsx`
-- Routes: `/`, `/bracket`, `/team/:slug`, `/player/:teamSlug/:playerNumber`
+- Routes: `/`, `/bracket`, `/eliminatoria`, `/team/:slug`, `/player/:teamSlug/:playerNumber`
 - `toSlug()` in `src/utils/slug.ts` — single source of truth for URL slug derivation
 - `PlayerPage` receives data via `useLocation().state` + fallback lookup via `TEAMS_BY_SLUG`
 
@@ -63,9 +63,4 @@
 - ALL hooks MUST be declared BEFORE any early return — strict rules-of-hooks
 
 ## Known Issues
-- `mexico` slug appears in both `grupo-a.ts` and `grupo-l.ts` — pre-existing data duplication
-- SPA routing: direct URL access fails in `npm run preview` without server config (acceptable for POC)
-
-## Build Status
-- `npm run build` + `npm run lint` — zero errors
-- Bundle: ~396 kB JS / 23 kB CSS (gzip: ~109 kB JS)
+- SPA routing: direct URL access fails in `npm run preview` without server config (acceptable for POC — resolved on GitHub Pages via 404.html redirect)

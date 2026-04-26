@@ -6,8 +6,8 @@ import type { Player } from '../types';
 import {
   generateStats,
   positionGradient,
+  playerAvatarUrl,
 } from '../utils/playerStats';
-import { usePlayerPhoto } from '../hooks/usePlayerPhoto';
 
 interface LocationState {
   player?: Player;
@@ -30,7 +30,10 @@ export function PlayerPage() {
 
   const teamFlag = state.teamFlag ?? team?.team.flag ?? '🏳️';
 
+  // ALL hooks MUST be before any early return (rules-of-hooks)
   const [copied, setCopied] = useState(false);
+  const avatarUrl = playerAvatarUrl(player?.name ?? '');
+
   function handleCopy() {
     navigator.clipboard.writeText(window.location.href).then(() => {
       setCopied(true);
@@ -50,7 +53,6 @@ export function PlayerPage() {
   }
 
   const stats = generateStats(player);
-  const avatarUrl = usePlayerPhoto(player.name);
   const gradient = positionGradient(player.position);
 
   // Teammates: same position, different number, max 4

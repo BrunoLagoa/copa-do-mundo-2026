@@ -55,28 +55,7 @@ export function playerAvatarUrl(name: string): string {
   return `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(name)}&backgroundColor=b6e3f4,ffd5dc,c0aede,d1d4f9&backgroundType=gradientLinear`;
 }
 
-const photoCache = new Map<string, string | null>();
 
-export async function fetchPlayerPhoto(name: string): Promise<string | null> {
-  if (photoCache.has(name)) return photoCache.get(name)!;
-  try {
-    const res = await fetch(
-      `https://www.thesportsdb.com/api/v1/json/123/searchplayers.php?p=${encodeURIComponent(name)}`
-    );
-    if (!res.ok) {
-      photoCache.set(name, null);
-      return null;
-    }
-    const data = await res.json();
-    const thumb: string | null = data?.player?.[0]?.strThumb ?? null;
-    const url = thumb ? `${thumb}/preview` : null;
-    photoCache.set(name, url);
-    return url;
-  } catch {
-    photoCache.set(name, null);
-    return null;
-  }
-}
 
 /** Position accent colours — returns Tailwind gradient classes */
 export function positionGradient(position: Player['position']): string {
