@@ -58,9 +58,14 @@
 ## Utilities
 - `src/utils/playerStats.ts` — `generateStats()`, `playerAvatarUrl()`, `positionGradient()`
 - `src/utils/slug.ts` — `toSlug()` shared utility
+- `src/utils/bracketUtils.ts` — `buildMatchIndex()`, `collectDependents()`, `deriveRounds()`, `buildBracketColumns()`, `COLUMN_LAYOUT_PRESETS`, `COLUMN_MATCH_OFFSETS`
 
 ## React Hooks Rule
 - ALL hooks MUST be declared BEFORE any early return — strict rules-of-hooks
 
 ## Known Issues
 - SPA routing: direct URL access fails in `npm run preview` without server config (acceptable for POC — resolved on GitHub Pages via 404.html redirect)
+
+## Build Status
+- `npm run build` + `npm run lint` — **zero errors, zero warnings**
+- Bundle: ~409 kB JS / 30 kB CSS (gzip: ~112 kB JS)

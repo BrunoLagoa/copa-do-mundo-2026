@@ -7,9 +7,3 @@
 - **Confiança:** alta — problema já ocorreu uma vez (cards sem contraste)
 - **Ação:** aplicar | ignorar
 
-## Sugestão 2
-- **Título:** slug-deduplication
-- **Recomendação:** Corrigir a duplicação do slug `mexico` entre `grupo-a.ts` e `grupo-l.ts`. O `TEAMS_BY_SLUG` sobrescreve silenciosamente uma das entradas, podendo exibir dados errados para o México.
-- **Impacto:** alto — dados incorretos para o usuário
-- **Confiança:** alta — bug confirmado no código
-- **Ação:** aplicar | ignorar

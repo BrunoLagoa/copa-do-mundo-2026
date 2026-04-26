@@ -1,7 +1,7 @@
 # Session Memory — Copa 2026
 
 ## Última atualização
-2026-04-25
+2026-04-25 (sessão 2)
 
 ## Estado atual do projeto
 - SPA Copa do Mundo 2026 em React 19 + Vite 8 + TypeScript 6 + Tailwind v3
@@ -37,9 +37,13 @@
 - `src/components/TeamPage.tsx` — página da seleção
 - `src/components/EliminatoriaView.tsx` — bracket com placares reais + localStorage
 - `src/components/ScoreMatchCard.tsx` — card com inputs de gols + tiebreaker pênaltis
-- `src/utils/playerStats.ts` — stats determinísticas
+- `src/utils/playerStats.ts` — stats determinísticas + `playerAvatarUrl` (DiceBear-only)
+- `src/utils/bracketUtils.ts` — funções compartilhadas de bracket
 - `src/data/teams/index.ts` — TEAMS_BY_SLUG
 - `tailwind.config.js` — `darkMode: 'class'`
 - `vite.config.ts` — `base: '/copa-do-mundo-2026/'`
 - `.github/workflows/deploy.yml` — GitHub Actions deploy para Pages
 - `public/404.html` — SPA redirect para GitHub Pages
+
+## Arquivos removidos
+- `src/hooks/usePlayerPhoto.ts` — removido (integração externa eliminada)
