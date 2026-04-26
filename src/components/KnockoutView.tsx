@@ -155,8 +155,8 @@ function ScoreRoundColumn({
 }: ScoreRoundColumnProps) {
   const isFinalRound = round.id.includes('final') || round.label.toLowerCase() === 'final';
   const columnClassName = isFinalRound
-    ? 'flex flex-col gap-2 min-w-[240px]'
-    : 'flex flex-col gap-2 min-w-[200px]';
+    ? 'flex flex-col gap-2 w-[240px]'
+    : 'flex flex-col gap-2 w-[200px]';
 
   return (
     <div className={columnClassName}>
