@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1",
+  "project": "memflow-command-system",
+  "version": "v1.1.25",
+  "scope": "local",
+  "target": "opencode",
+  "channel": "release",
+  "repo": "BrunoLagoa/memflow-command-system",
+  "os": "macos",
+  "installDir": "/Users/bruno/Dev/pocs/copa-2026/.opencode/commands/memflow",
+  "commandsRoot": "/Users/bruno/Dev/pocs/copa-2026/.opencode/commands",
+  "installedAt": "2026-04-27T00:42:32Z"
+}
