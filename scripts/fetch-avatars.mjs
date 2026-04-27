@@ -228,6 +228,10 @@ function buildDicebearMaleAvatar(name) {
   return `https://api.dicebear.com/9.x/adventurer/svg?seed=${seed}&gender=male`;
 }
 
+function isDicebearAvatar(url) {
+  return typeof url === 'string' && url.includes('api.dicebear.com');
+}
+
 async function resolvePhoto(name, index, total) {
   // Estratégia: Wikidata/Commons → Wikipedia → TheSportsDB → Google Imagens → DiceBear
   await sleep(DELAY_MS);
@@ -338,10 +342,16 @@ async function main() {
   console.log(`📋 ${allNames.length} jogadores únicos encontrados.`);
 
   const existingPhotos = loadExistingPhotos();
-  const alreadyMapped = Object.keys(existingPhotos).length;
+  const existingEntries = Object.entries(existingPhotos);
+  const dicebearMapped = existingEntries.filter(([, url]) => isDicebearAvatar(url)).length;
+  const realMapped = existingEntries.length - dicebearMapped;
 
-  const pending = allNames.filter((n) => !existingPhotos[n]);
-  console.log(`✔️  ${alreadyMapped} já mapeados — buscando ${pending.length} restantes.\n`);
+  // Reprocessa quem está com DiceBear para tentar foto real em novas execuções
+  const pending = allNames.filter((name) => {
+    const currentPhoto = existingPhotos[name];
+    return !currentPhoto || isDicebearAvatar(currentPhoto);
+  });
+  console.log(`✔️  ${realMapped} com foto real | ${dicebearMapped} com dicebear — buscando ${pending.length} jogadores.\n`);
 
   // Começa com o mapa existente para preservar entradas manuais e já buscadas
   const photoMap = { ...existingPhotos };
