@@ -24,10 +24,12 @@
               acc[kv[0]] = kv.slice(1).join('=').replace(/~and~/g, '&');
               return acc;
             }, {});
+          // Use the base path only (repo root) + decoded.p to avoid path duplication on reload
+          var basePath = window.location.pathname.split('/').slice(0, 2).join('/');
           window.history.replaceState(
             null,
             null,
-            window.location.pathname + (decoded.p || '') + (decoded.q ? '?' + decoded.q : '') + window.location.hash
+            basePath + (decoded.p || '') + (decoded.q ? '?' + decoded.q : '') + window.location.hash
           );
         }
       })();
