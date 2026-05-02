@@ -49,7 +49,7 @@ function AppRoutes() {
       {isHome && <SearchBar query={query} onChange={setQuery} />}
       <main className={isBracket ? 'w-full' : 'max-w-7xl mx-auto'}>
         <Routes>
-          <Route path="/" element={<Navigate to="/grupos" replace />} />
+          <Route path="/" element={<Navigate to="grupos" replace />} />
           <Route path="/grupos" element={<GroupGrid groups={filteredGroups} />} />
           <Route path="/bracket" element={<BracketView />} />
           <Route path="/knockout" element={<KnockoutView />} />
