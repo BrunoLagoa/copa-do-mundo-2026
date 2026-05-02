@@ -37,7 +37,7 @@ export function Header() {
                 className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
               >
                 {/* mostra o ícone do tema atual: sol = light, lua = dark */}
-                {isDark ? <Moon size={18} /> : <Sun size={18} />}
+                {isDark ? <Sun size={18} /> : <Moon size={18} />}
               </button>
             );
           }}
