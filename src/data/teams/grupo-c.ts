@@ -38,7 +38,7 @@ export const TEAMS_C: TeamDetail[] = [
       { number: 17, name: 'Fabinho',             position: 'Meio-campista', club: 'Al-Ittihad' },
       { number: 18, name: 'Luiz Henrique',       position: 'Atacante',      club: 'Zenit' },
       { number: 19, name: 'Matheus Cunha',       position: 'Atacante',      club: 'Manchester United' },
-      { number: 21, name: 'Danilo (Botafogo)',   position: 'Meio-campista', club: 'Botafogo' },
+      { number: 21, name: 'Danilo',   position: 'Meio-campista', club: 'Botafogo' },
     ],
     games: [
       { round: 'Fase de Grupos — Rodada 1', opponent: 'Haiti',   opponentFlag: '🇭🇹', date: '15 Jun', city: 'Los Angeles', venue: 'SoFi Stadium', score: null, result: null },
