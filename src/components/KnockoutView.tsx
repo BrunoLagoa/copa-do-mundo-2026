@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import ConfirmModal from './ConfirmModal';
 import { RotateCcw } from 'lucide-react';
 import type { BracketTeam, Match, Round } from '../types';
 import { ROUNDS } from '../data/bracket';
@@ -107,6 +108,7 @@ function ScoreRoundColumn({
 
 export function KnockoutView() {
   const [scores, setScores] = useState<Record<string, MatchScore>>(loadState);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   // Persist whenever scores change
   useEffect(() => {
@@ -142,9 +144,12 @@ export function KnockoutView() {
   }
 
   function handleReset() {
-    if (window.confirm('Tem certeza que deseja limpar todos os placares?')) {
-      setScores({});
-    }
+    setShowConfirm(true);
+  }
+
+  function confirmReset() {
+    setScores({});
+    setShowConfirm(false);
   }
 
   // We need multiple passes to propagate winners into derived matches
@@ -169,6 +174,7 @@ export function KnockoutView() {
   );
 
   return (
+    <>
     <section className="px-2 md:px-4 py-4 md:py-5">
       <div className="flex items-start justify-between gap-3 mb-4">
         <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 dark:text-blue-200 dark:bg-blue-900/30 dark:border-blue-800 rounded-lg px-3 py-2 flex-1">
@@ -204,5 +210,17 @@ export function KnockoutView() {
         </div>
       </div>
     </section>
+
+      {showConfirm && (
+        <ConfirmModal
+          title="Limpar todos os placares"
+          message="Tem certeza? Todos os placares e resultados serão apagados. Essa ação não pode ser desfeita."
+          confirmLabel="Limpar tudo"
+          cancelLabel="Cancelar"
+          onConfirm={confirmReset}
+          onCancel={() => setShowConfirm(false)}
+        />
+      )}
+    </>
   );
 }
