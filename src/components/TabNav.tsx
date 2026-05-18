@@ -26,6 +26,12 @@ export function TabNav() {
       >
         Simulador
       </NavLink>
+      <NavLink
+        to="/team/brasil"
+        className={({ isActive }) => `${base} ${isActive ? active : inactive}`}
+      >
+        🇧🇷 Brasil
+      </NavLink>
     </nav>
   );
 }
