@@ -208,13 +208,20 @@ export function MyTeamView() {
         </div>
       </div>
 
-      {/* Campo */}
+      {/* Campo — aspect-ratio 68/105 ≈ proporção real de campo de futebol */}
       <div
-        className="relative rounded-2xl overflow-hidden shadow-xl"
-        style={{ background: 'linear-gradient(180deg, #2d6a2d 0%, #1a4a1a 100%)' }}
+        className="relative rounded-2xl overflow-hidden shadow-xl w-full"
+        style={{
+          background: 'linear-gradient(180deg, #2d6a2d 0%, #1a4a1a 100%)',
+          aspectRatio: '68 / 105',
+        }}
       >
         {/* Linhas do campo */}
-        <svg className="absolute inset-0 w-full h-full opacity-20" viewBox="0 0 300 480" preserveAspectRatio="none">
+        <svg
+          className="absolute inset-0 w-full h-full opacity-20"
+          viewBox="0 0 300 480"
+          preserveAspectRatio="xMidYMid meet"
+        >
           <rect x="30" y="20" width="240" height="440" rx="4" fill="none" stroke="white" strokeWidth="2"/>
           <line x1="30" y1="240" x2="270" y2="240" stroke="white" strokeWidth="1"/>
           <circle cx="150" cy="240" r="40" fill="none" stroke="white" strokeWidth="1"/>
@@ -226,8 +233,8 @@ export function MyTeamView() {
           <circle cx="150" cy="420" r="3" fill="white"/>
         </svg>
 
-        {/* Jogadores por linha (do goleiro ao ataque) */}
-        <div className="relative z-10 flex flex-col-reverse gap-2 py-5 px-2" style={{ minHeight: '420px' }}>
+        {/* Jogadores por linha (do goleiro ao ataque) — ocupa toda a altura */}
+        <div className="absolute inset-0 z-10 flex flex-col-reverse justify-around py-4 px-2">
           {lineGroups.map((slotIndices, lineIdx) => (
             <div
               key={lineIdx}
