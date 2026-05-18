@@ -74,6 +74,11 @@
 - `src/utils/playerStats.ts` — `generateStats()`, `playerAvatarUrl()`, `positionGradient()`
 - `src/utils/slug.ts` — `toSlug()` shared utility
 - `src/utils/bracketUtils.ts` — `buildMatchIndex()`, `collectDependents()`, `deriveRounds()`, `buildBracketColumns()`, `COLUMN_LAYOUT_PRESETS`, `COLUMN_MATCH_OFFSETS`
+- `scripts/fetch-avatars.mjs` — script incremental de busca de fotos (Wikidata/Commons → Wikipedia → TheSportsDB → Google → DiceBear); gera `src/data/playerPhotos.ts` (não editar manualmente)
+
+## TabNav
+- Abas: Grupos | Eliminatórias | Simulador | 🇧🇷 Brasil
+- Aba Brasil aponta para `/team/brasil` (atalho direto, NavLink com isActive)
 
 ## React Hooks Rule
 - ALL hooks MUST be declared BEFORE any early return — strict rules-of-hooks

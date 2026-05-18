@@ -1,7 +1,7 @@
 # Session Memory — Copa 2026
 
 ## Última atualização
-2026-04-25 (sessão 2)
+2026-05-18 (sessão 3)
 
 ## Estado atual do projeto
 - SPA Copa do Mundo 2026 em React 19 + Vite 8 + TypeScript 6 + Tailwind v3
@@ -16,6 +16,9 @@
 5. **PlayerModal** — portal sobre o campo, avatar DiceBear, stats geradas, CTA para perfil
 6. **PlayerPage** — perfil completo do jogador com hero, stats, companheiros de posição
 7. **Dark/Light mode** — ThemeToggler animate-ui + next-themes, toggle binário light↔dark
+8. **Elenco Brasil atualizado** — convocação oficial Copa 2026 em `src/data/teams/grupo-c.ts`
+9. **Script fetch-avatars** — `scripts/fetch-avatars.mjs` documentado no README; gera `src/data/playerPhotos.ts`
+10. **Aba Brasil no TabNav** — atalho direto para `/team/brasil` no menu principal
 
 
 ## Problemas corrigidos nesta sessão

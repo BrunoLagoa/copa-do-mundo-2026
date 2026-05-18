@@ -2,10 +2,10 @@
 
 ## Snapshot atual
 
-- Execuções: 19
-- Taxa aprovação: 95% (18/19 aprovados; exec 17 com ressalvas)
+- Execuções: 22
+- Taxa aprovação: 95% (21/22 aprovados; exec 17 com ressalvas)
 - Taxa reprovação: 0%
-- Retrabalho médio: 0.36
+- Retrabalho médio: 0.32
 - Principal risco: dark mode em novos componentes sem `dark:` variants
 - Tendência: melhorando
 
@@ -32,6 +32,9 @@
 | 17 | Drag & drop jogadores no FootballPitch (Pointer Events API) | Aprovado c/ ressalvas | 1 (hooks após early return) |
 | 18 | Correção coordenadas drag (delta incremental + getBoundingClientRect) + remoção handler duplo | Aprovado | 0 |
 | 19 | Select dinâmico de formação em TeamPage + expansão Formation para 12 formações + ALL_FORMATIONS | Aprovado | 0 |
+| 20 | Atualização elenco oficial Seleção Brasileira (convocação Copa 2026) | Aprovado | 0 |
+| 21 | Atualização README.md + seção script fetch-avatars | Aprovado | 0 |
+| 22 | Aba Brasil no TabNav → /team/brasil | Aprovado | 0 |
 
 ## Padrões observados
 - Lint captura erros menores (unused var, hooks order) antes do deploy — pipeline funciona
