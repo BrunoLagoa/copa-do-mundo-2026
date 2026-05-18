@@ -56,6 +56,22 @@ npm run lint     # ESLint
 
 ---
 
+## Fotos dos jogadores
+
+O script `scripts/fetch-avatars.mjs` busca fotos reais dos jogadores em múltiplas fontes (Wikidata/Commons → Wikipedia → TheSportsDB → Google Imagens) e gera o arquivo `src/data/playerPhotos.ts`. Jogadores sem foto real recebem avatar gerado pelo DiceBear.
+
+**Pré-requisito:** Node.js ≥ 18
+
+```bash
+node scripts/fetch-avatars.mjs
+```
+
+O script é incremental: execuções subsequentes reprocessam apenas jogadores que ainda estejam com avatar DiceBear, preservando fotos reais já encontradas.
+
+O arquivo gerado (`src/data/playerPhotos.ts`) não deve ser editado manualmente.
+
+---
+
 ## Stack
 
 | Camada | Tecnologia |
@@ -92,6 +108,7 @@ src/
 ├── data/
 │   ├── groups.ts           # 48 seleções em 12 grupos
 │   ├── bracket.ts          # Chaveamento projetado das oitavas
+│   ├── playerPhotos.ts     # Fotos reais dos jogadores (gerado por script)
 │   └── teams/              # Dados detalhados por grupo (A–L)
 ├── types/
 │   └── index.ts            # Interfaces TypeScript (Team, Group, Match…)
@@ -99,6 +116,8 @@ src/
     ├── slug.ts             # Gerador de slugs para rotas
     ├── playerStats.ts      # Utilitários de estatísticas
     └── theme.ts            # Tokens de tema
+scripts/
+└── fetch-avatars.mjs       # Busca fotos reais dos jogadores (Wikidata/Wikipedia/TSDB/Google)
 ```
 
 ---
