@@ -7,7 +7,7 @@ export function TabNav() {
   const inactive = 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700';
 
   return (
-    <nav className="flex gap-2 px-4 py-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+    <nav className="flex gap-2 px-4 py-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
       <NavLink
         to="/grupos"
         className={({ isActive }) => `${base} ${isActive ? active : inactive}`}
@@ -37,6 +37,30 @@ export function TabNav() {
         className={({ isActive }) => `${base} ${isActive ? active : inactive}`}
       >
         🇧🇷 Brasil
+      </NavLink>
+      <NavLink
+        to="/busca"
+        className={({ isActive }) => `${base} ${isActive ? active : inactive} whitespace-nowrap`}
+      >
+        Busca
+      </NavLink>
+      <NavLink
+        to="/destaques"
+        className={({ isActive }) => `${base} ${isActive ? active : inactive} whitespace-nowrap`}
+      >
+        Destaques
+      </NavLink>
+      <NavLink
+        to="/comparar"
+        className={({ isActive }) => `${base} ${isActive ? active : inactive} whitespace-nowrap`}
+      >
+        Comparar
+      </NavLink>
+      <NavLink
+        to="/minha-selecao"
+        className={({ isActive }) => `${base} ${isActive ? active : inactive} whitespace-nowrap`}
+      >
+        Minha Seleção
       </NavLink>
     </nav>
   );

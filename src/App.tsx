@@ -10,6 +10,10 @@ import { KnockoutView } from './components/KnockoutView';
 import { TeamPage } from './components/TeamPage';
 import { PlayerPage } from './components/PlayerPage';
 import { GamesView } from './components/GamesView';
+import { PlayerSearchView } from './components/PlayerSearchView';
+import { RankingsView } from './components/RankingsView';
+import { PlayerComparatorView } from './components/PlayerComparatorView';
+import { MyTeamView } from './components/MyTeamView';
 
 function SearchBar({ query, onChange }: { query: string; onChange: (v: string) => void }) {
   return (
@@ -55,6 +59,10 @@ function AppRoutes() {
           <Route path="/bracket" element={<BracketView />} />
           <Route path="/knockout" element={<KnockoutView />} />
           <Route path="/jogos" element={<GamesView />} />
+          <Route path="/busca" element={<PlayerSearchView />} />
+          <Route path="/destaques" element={<RankingsView />} />
+          <Route path="/comparar" element={<PlayerComparatorView />} />
+          <Route path="/minha-selecao" element={<MyTeamView />} />
           <Route path="/team/:slug" element={<TeamPage />} />
           <Route path="/player/:teamSlug/:playerNumber" element={<PlayerPage />} />
         </Routes>
