@@ -108,6 +108,9 @@ export function ScoreMatchCard({
   const metaClassName = isFinal
     ? 'flex items-center justify-between text-sm text-amber-700 dark:text-amber-300 mb-0.5 font-medium'
     : 'flex items-center justify-between text-xs text-gray-400 dark:text-gray-500 mb-0.5';
+  const timeClass = isFinal
+    ? 'text-amber-700 dark:text-amber-300 font-bold tabular-nums'
+    : 'text-gray-700 dark:text-gray-200 font-bold tabular-nums';
 
   const vsClassName = isFinal
     ? 'text-center text-sm text-amber-500 dark:text-amber-400 font-semibold'
@@ -138,7 +141,11 @@ export function ScoreMatchCard({
   return (
     <div className={cardClassName}>
       <div className={metaClassName}>
-        <span>{match.date}</span>
+        <span>
+          {match.time && <span className={timeClass}>{match.time}</span>}
+          {match.time && ' · '}
+          {match.date}
+        </span>
         <span>{match.city}</span>
       </div>
 

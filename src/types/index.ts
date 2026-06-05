@@ -18,6 +18,7 @@ export interface BracketMatch {
   teamA: BracketTeam | null;
   teamB: BracketTeam | null;
   date: string;   // ex: "28 Jun"
+  time: string;   // ex: "16:00" (BRT, derivado de FIXTURES por data+cidade)
   city: string;   // ex: "Los Angeles"
   next: { matchId: string; slot: 'teamA' | 'teamB' } | null;
 }
