@@ -13,7 +13,7 @@ export interface BracketTeam extends Team {
   seed?: string; // ex: "1º A", "2º B"
 }
 
-export interface Match {
+export interface BracketMatch {
   id: string;
   teamA: BracketTeam | null;
   teamB: BracketTeam | null;
@@ -25,7 +25,48 @@ export interface Match {
 export interface Round {
   id: string;    // "ro16" | "qf" | "sf" | "final"
   label: string; // "Oitavas" | "Quartas" | "Semifinal" | "Final"
-  matches: Match[];
+  matches: BracketMatch[];
+}
+
+export type GroupId = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L';
+
+export type MatchPhase =
+  | 'group'
+  | 'round-of-32'
+  | 'round-of-16'
+  | 'quarter'
+  | 'semi'
+  | 'third'
+  | 'final';
+
+export type PlaceholderKind = 'winner' | 'runner' | 'third';
+
+export interface Placeholder {
+  kind: PlaceholderKind;
+  group: GroupId;
+}
+
+/** Jogo oficial da Copa do Mundo 2026 (fonte: FIFA, mar/2026). */
+export interface Fixture {
+  id: string;            // "M1"..."M104"
+  phase: MatchPhase;
+  matchday?: 1 | 2 | 3;  // apenas group
+  group?: GroupId;       // apenas group
+  date: string;          // ISO "2026-06-11" (data em BRT, BRT = UTC-3)
+  time: string;          // "HH:MM" em BRT
+  city: string;
+  venue: string;
+  country: 'México' | 'EUA' | 'Canadá';
+  homeTeam: string;      // nome (PT-BR) ou placeholder textual
+  awayTeam: string;
+  homeSlug: string;      // slug para /team/... — "TBD" para mata-mata
+  awaySlug: string;
+  homeFlag: string;
+  awayFlag: string;
+  homePlaceholder?: Placeholder;      // mata-mata
+  awayPlaceholder?: Placeholder;
+  homeThirdGroups?: GroupId[];        // ex: 3º de [C,D,F,G,H]
+  awayThirdGroups?: GroupId[];
 }
 
 export interface Player {
@@ -33,17 +74,6 @@ export interface Player {
   name: string;
   position: 'Goleiro' | 'Defensor' | 'Meio-campista' | 'Atacante';
   club: string;
-}
-
-export interface TeamGame {
-  round: string;          // ex: "Fase de Grupos — Rodada 1", "Oitavas"
-  opponent: string;       // nome do adversário
-  opponentFlag: string;   // emoji
-  date: string;           // ex: "12 Jun"
-  city: string;
-  venue: string;          // estádio
-  score: string | null;   // null = não jogado; "2–1" quando disponível
-  result: 'V' | 'E' | 'D' | null;
 }
 
 export type Formation =
@@ -83,5 +113,4 @@ export interface TeamDetail {
   confederation: string;  // ex: "CONMEBOL"
   formation: Formation;   // ex: "4-3-3"
   players: Player[];
-  games: TeamGame[];
 }

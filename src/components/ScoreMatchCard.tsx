@@ -1,4 +1,4 @@
-import type { BracketTeam, Match } from '../types';
+import type { BracketTeam, BracketMatch } from '../types';
 
 export interface MatchScore {
   goalsA: string;
@@ -7,7 +7,7 @@ export interface MatchScore {
 }
 
 interface ScoreMatchCardProps {
-  match: Match;
+  match: BracketMatch;
   score: MatchScore;
   winnerTeam: BracketTeam | null;
   onScoreChange: (matchId: string, score: MatchScore) => void;

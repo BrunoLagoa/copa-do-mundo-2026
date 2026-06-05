@@ -1,7 +1,7 @@
-import type { BracketTeam, Match } from '../types';
+import type { BracketTeam, BracketMatch } from '../types';
 
 interface MatchCardProps {
-  match: Match;
+  match: BracketMatch;
   winnerTeam: BracketTeam | null;
   onSelectWinner: (team: BracketTeam) => void;
   isFinal?: boolean;

@@ -171,3 +171,99 @@ App → AppRoutes → GroupGrid (groups: Group[]) → GroupCard (group: Group) �
 **Motivo:** 48 seleções exigem navegação eficiente; solução client-side sem dependências novas.
 
 **Impacto:** Médio — refatoração de `App.tsx` (extração de `AppRoutes`).
+
+---
+
+## [2026-04-26] Horários oficiais FIFA integrados (sessão 4)
+
+**Decisão:** Adicionar 104 jogos oficiais da Copa 2026 (FIFA, publicada 30/mar/2026) com data, **horário BRT**, cidade, estádio, em três superfícies de UI: aba `/jogos`, `GroupCard` (3 jogos compactos), e callout "próximo jogo" em `TeamPage`.
+
+**Contexto:** Usuário forneceu a tabela oficial copiada da página FIFA (link original renderizava JS, vazio para scraping). Validei horários de mata-mata via Wikipedia EN (mesma fonte FIFA, dados estruturados). 3 erros de datilografia detectados na fonte e corrigidos manualmente.
+
+**Detalhes:**
+- 72 jogos de grupos (3 rodadas × 12 grupos × 2 jogos/dia) + 32 de mata-mata (16 32-avos + 8 oitavas + 4 quartas + 2 semis + 1 3º + 1 final)
+- Mata-mata usa placeholders textuais (`Vencedor do Grupo A x 2º do Grupo B`); 3ºs de combinações modelados como `homeThirdGroups: ['C','D','F','G','H']`
+- BRT (UTC-3) fixo como fuso principal — sem toggle de fuso na v1
+- 3 correções aplicadas:
+  1. "21 de janeiro" → "21 de junho" (rodada 2, grupo H — fonte FIFA)
+  2. "22 de janeiro" → "22 de junho" (rodada 2, grupo J — fonte FIFA)
+  3. M72 (Argentina × Jordânia): data BRT 28/06 → 27/06 (MD3 termina 27/06)
+
+**Motivo:** Usuário pediu explicitamente. Horários são feature central para fãs brasileiros. Fonte oficial evita imprecisões de re-tabulação manual.
+
+**Impacto:** Alto — feature principal, 24 arquivos tocados, +10.4 kB no bundle.
+
+---
+
+## [2026-04-26] BRT como fuso fixo (sessão 4)
+
+**Decisão:** Horário exibido em BRT (UTC-3) exclusivamente. Sem conversão local, sem toggle de fuso.
+
+**Detalhes:**
+- `Fixture.time` armazenado como string "HH:MM" em BRT
+- Conversão BRT → Date UTC feita internamente em `parseFixtureDateTime()` somando 3h
+- `getFixturesByDate` agrupa por data BRT
+- `TeamPage` exibe "BRT" como label junto ao horário
+
+**Motivo:** Público-alvo é brasileiro; BRT é o fuso natural. Toggle adicionaria complexidade sem valor (decisão do usuário: "o que ficar melhor").
+
+**Impacto:** Baixo — decisão localizada, mas toca toda a camada de exibição de horário.
+
+---
+
+## [2026-04-26] `Fixture` como single source of truth (sessão 4)
+
+**Decisão:** Remover `TeamGame` e `TeamDetail.games`. Toda informação de jogos vive em `src/data/matches.ts` (`FIXTURES: Fixture[]`, 104 entradas) e é derivada via helpers em `matchDate.ts`.
+
+**Contexto:** Antes da sessão 4, cada time tinha `games: TeamGame[]` próprio em `src/data/teams/grupo-*.ts`. Datas estavam incorretas em vários arquivos (México "12 Jun" em vez de "11 Jun", Brasil "15 Jun" em vez de "13 Jun", etc.). Mata-mata não estava em `team.games` — usava apenas `KO_GAMES` placeholder.
+
+**Detalhes:**
+- Novo tipo `Fixture` em `src/types/index.ts` com: id, phase, matchday?, group?, date (ISO), time (BRT HH:MM), city, venue, country, homeTeam, awayTeam, homeSlug, awaySlug, flags, placeholders
+- Helpers em `src/utils/matchDate.ts`: `getTeamMatches(slug)`, `getGroupMatches(group)`, `getNextTeamMatch(slug)`, `getFixturesByDate()`, `getFixturesByPhase()`, `isDateToday/Future/Past`
+- 12 arquivos `grupo-*.ts` ficaram ~7 linhas mais curtos cada (games removido)
+- `TeamPage` agora chama `getTeamMatches(slug)` para a tabela de jogos
+- `MatchEntry` (compat legada para `GamesView` antigo) re-exporta `Fixture` com campos extras (`time`, `fullDate`, `phase`, `group`, `country`, `isPlaceholder`)
+
+**Motivo:** Dados duplicados (team.games vs mata-mata) geravam inconsistências e datas erradas. Single source of truth garante que mudança de horário pela FIFA toca apenas 1 arquivo.
+
+**Impacto:** Alto — refactor arquitetural, 24 arquivos.
+
+---
+
+## [2026-04-26] Rename `Match` → `BracketMatch` (sessão 4)
+
+**Decisão:** Renomear o tipo `Match` (que representava apenas jogos do bracket) para `BracketMatch` para liberar o nome `Match` para o novo `Fixture` (ou uso futuro).
+
+**Contexto:** Novo `Fixture` precisava coexistir com `Match` no mesmo módulo. Conflito de nome entre conceito geral (jogo da copa) e conceito específico (jogo do bracket).
+
+**Detalhes:**
+- `src/types/index.ts`: `Match` → `BracketMatch`
+- Imports atualizados em: `bracketUtils.ts`, `MatchCard.tsx`, `ScoreMatchCard.tsx`, `KnockoutView.tsx`
+- `data/bracket.ts` não importava o tipo explicitamente, não precisou mudar
+- 1 PR de refactor, sem impacto funcional
+
+**Motivo:** Clareza semântica. `BracketMatch` é específico do simulador/knockout; `Fixture` (futuro) será geral.
+
+**Impacto:** Baixo — refactor isolado, tsc detectou todos os consumidores.
+
+---
+
+## [2026-04-26] Bundle +5 kB gzipped como limite aceitável (sessão 4, observacional)
+
+**Observação:** Bundle cresceu de 148.84 kB → 151.20 kB gzipped (+1.58%) após adicionar 104 fixtures. Considerado aceitável (não justifica code-splitting nesta POC).
+
+**Motivo:** 104 entradas × ~150 bytes em JSON compacto é eficiente. Code-splitting dinâmico de `GamesView`/`KnockoutView`/`BracketView` reduziria ~30% do bundle mas adicionaria complexidade de loading.
+
+**Impacto:** Baixo — registro para referência futura. Se projeto crescer, reavaliar.
+
+---
+
+## [2026-04-26] Memória precisa ser fonte secundária, código é verdade (sessão 4, meta)
+
+**Observação:** A memória `.agents/memory/*` da sessão 3 estava significativamente desatualizada: não documentava `KnockoutView`, `MyTeamView`, `PlayerComparatorView`, `PlayerSearchView`, `RankingsView`, nem o uso de `team.games` para os 48 times. A verdade estava no código (via Serena).
+
+**Lição:** Antes de confiar em `decisions.md`/`session-memory.md`, validar contra o estado real com Serena. Memórias podem divergir se `/memory-save` não for chamado em cada sessão significativa.
+
+**Ação proposta:** Adicionar sugestão para revisar memórias em cada `/workflow` (não apenas no fim de `/execute`).
+
+**Impacto:** Meta — afeta qualidade futura da memória do projeto.

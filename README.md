@@ -1,21 +1,13 @@
 # 🏆 Copa do Mundo 2026
 
-> 48 seleções. 12 grupos. 1 troféu.  
-> Acompanhe a fase de grupos, registre os placares e monte o seu bracket da Copa FIFA 2026.
-
----
-
-## Screenshots
-
-| Grupos | Eliminatórias | Simulador |
-|---|---|---|
-| ![Grupos](docs/screenshot-groups.png) | ![Eliminatórias](docs/screenshot-knockout.png) | ![Simulador](docs/screenshot-bracket.png) |
+> 48 seleções. 12 grupos. 104 jogos. 1 troféu.
+> Acompanhe a fase de grupos, marque os jogos no calendário (horário BRT), registre os placares das eliminatórias e monte o seu bracket.
 
 ---
 
 ## O que é isso?
 
-Uma SPA interativa para explorar a Copa do Mundo 2026 — o maior torneio da história do futebol, com 48 seleções pela primeira vez. Dados do sorteio real realizado em dezembro de 2025.
+Uma SPA 100% estática para explorar a Copa do Mundo FIFA 2026 — a maior edição da história, com 48 seleções distribuídas em 12 grupos e jogos em 16 cidades-sede (Canadá, México, EUA). Calendário oficial completo (FIFA, mar/2026) com data, **horário BRT**, estádio e cidade.
 
 Sem backend. Sem API. Sem frescura. Só futebol.
 
@@ -25,13 +17,18 @@ Sem backend. Sem API. Sem frescura. Só futebol.
 
 | Feature | Descrição |
 |---|---|
-| 🗂 **Fase de grupos** | 12 grupos (A–L) com as 48 seleções classificadas |
-| 🔍 **Busca** | Filtre qualquer seleção pelo nome em tempo real |
-| 📋 **Eliminatórias** | Insira placar de cada confronto; vencedor avança automaticamente. Em caso de empate, escolha o vencedor nos pênaltis |
-| 🏟 **Simulador** | Monte o seu chaveamento das oitavas até a final selecionando os vencedores |
-| 👕 **Perfil de seleção** | Clique em qualquer time para ver elenco e resultados |
-| ⚽ **Perfil de jogador** | Estatísticas individuais com foto e posição no campo |
-| 🌙 **Tema dark/light** | Alterne manualmente pelo ícone no header |
+| 🗂 **Fase de grupos** | 12 grupos (A–L), 48 seleções. Cada `GroupCard` mostra os 3 jogos do grupo com horário BRT. |
+| 📅 **Calendário completo** | Todos os 104 jogos (grupos + mata-mata) com data, **horário BRT**, estádio e cidade. Filtro "Jogos de hoje" em destaque. |
+| 🔍 **Busca de seleção** | Filtro client-side em tempo real pelo nome da seleção. |
+| 📋 **Eliminatórias** | Insira o placar de cada confronto; vencedor avança automaticamente. Empate → escolha o vencedor nos pênaltis. Persistência em `localStorage`. |
+| 🏟 **Simulador (Bracket)** | Monte o seu chaveamento das oitavas à final selecionando os vencedores manualmente. |
+| 👕 **Perfil de seleção** | Elenco, formação tática interativa, comissão técnica, confederacao, próximos jogos (com callout), tabela completa de jogos. |
+| ⚽ **Perfil de jogador** | Estatísticas individuais, foto, posição no campo, navegação entre elencos. |
+| 🔎 **Busca de jogadores** | Busca cross-seleção por nome, posição, clube. |
+| 🌟 **Destaques** | Rankings por posição e overall. |
+| ⚖️ **Comparar** | Comparativo lado a lado entre dois jogadores. |
+| ⭐ **Minha Seleção** | 11 slots, formação customizável, persistência local. |
+| 🌙 **Tema dark/light** | Alterne manualmente pelo ícone no header. |
 
 ---
 
@@ -44,31 +41,33 @@ npm install
 npm run dev
 ```
 
-Acesse [http://localhost:5173](http://localhost:5173)
+Acesse [http://localhost:5173/copa-do-mundo-2026](http://localhost:5173/copa-do-mundo-2026)
 
 ### Outros comandos
 
 ```bash
-npm run build    # build de produção (TypeScript + Vite)
+npm run build    # tsc -b && vite build
 npm run preview  # preview do build
 npm run lint     # ESLint
 ```
 
 ---
 
-## Fotos dos jogadores
+## Rotas
 
-O script `scripts/fetch-avatars.mjs` busca fotos reais dos jogadores em múltiplas fontes (Wikidata/Commons → Wikipedia → TheSportsDB → Google Imagens) e gera o arquivo `src/data/playerPhotos.ts`. Jogadores sem foto real recebem avatar gerado pelo DiceBear.
-
-**Pré-requisito:** Node.js ≥ 18
-
-```bash
-node scripts/fetch-avatars.mjs
-```
-
-O script é incremental: execuções subsequentes reprocessam apenas jogadores que ainda estejam com avatar DiceBear, preservando fotos reais já encontradas.
-
-O arquivo gerado (`src/data/playerPhotos.ts`) não deve ser editado manualmente.
+| Rota | Página |
+|---|---|
+| `/grupos` | Fase de grupos (com busca) |
+| `/jogos` | Calendário completo (grupos + mata-mata) com horário BRT |
+| `/knockout` | Eliminatórias — input de placar real |
+| `/bracket` | Simulador de chaveamento |
+| `/team/brasil` | Atalho para a página do Brasil 🇧🇷 |
+| `/busca` | Busca de jogadores |
+| `/destaques` | Rankings de jogadores |
+| `/comparar` | Comparador de jogadores |
+| `/minha-selecao` | Minha seleção (formação + 11 slots) |
+| `/team/:slug` | Perfil de qualquer seleção |
+| `/player/:teamSlug/:playerNumber` | Perfil de jogador |
 
 ---
 
@@ -79,7 +78,7 @@ O arquivo gerado (`src/data/playerPhotos.ts`) não deve ser editado manualmente.
 | Framework | React 19 |
 | Linguagem | TypeScript 6 (`strict: true`) |
 | Bundler | Vite 8 |
-| Estilo | Tailwind CSS 3 |
+| Estilo | Tailwind CSS **3.4** |
 | Roteamento | React Router 7 |
 | Ícones | Lucide React |
 | Tema | next-themes |
@@ -91,66 +90,78 @@ O arquivo gerado (`src/data/playerPhotos.ts`) não deve ser editado manualmente.
 ```
 src/
 ├── components/
-│   ├── GroupGrid.tsx       # Grid dos 12 grupos
-│   ├── GroupCard.tsx       # Card individual de grupo
-│   ├── TeamRow.tsx         # Linha de seleção na tabela
-│   ├── TeamPage.tsx        # Perfil da seleção
-│   ├── PlayerPage.tsx      # Perfil do jogador
-│   ├── PlayerModal.tsx     # Modal de jogador
-│   ├── FootballPitch.tsx   # Campo interativo com posições
-│   ├── KnockoutView.tsx    # Acompanhamento com placares reais
-│   ├── ScoreMatchCard.tsx  # Card de confronto com entrada de placar
-│   ├── BracketView.tsx     # Simulador de chaveamento eliminatório
-│   ├── MatchCard.tsx       # Card de confronto
-│   ├── RoundColumn.tsx     # Coluna de rodada (Oitavas/QF/SF/Final)
-│   ├── Header.tsx          # Cabeçalho com toggle de tema
-│   └── TabNav.tsx          # Navegação Grupos / Eliminatórias / Simulador
+│   ├── GroupGrid.tsx               # Grid dos 12 grupos
+│   ├── GroupCard.tsx               # Card de grupo (4 times + 3 jogos compactos)
+│   ├── GamesView.tsx               # /jogos — calendário com horário BRT
+│   ├── KnockoutView.tsx            # /knockout — input de placar real
+│   ├── BracketView.tsx             # /bracket — simulador
+│   ├── MatchCard.tsx               # Card de confronto (bracket)
+│   ├── ScoreMatchCard.tsx          # Card com input de placar (knockout)
+│   ├── RoundColumn.tsx             # Coluna de rodada
+│   ├── TeamPage.tsx                # Perfil de seleção (callout + formação + jogos)
+│   ├── PlayerPage.tsx              # Perfil de jogador
+│   ├── PlayerModal.tsx             # Modal de jogador
+│   ├── FootballPitch.tsx           # Campo tático interativo
+│   ├── PlayerSearchView.tsx        # /busca
+│   ├── RankingsView.tsx            # /destaques
+│   ├── PlayerComparatorView.tsx    # /comparar
+│   ├── MyTeamView.tsx              # /minha-selecao
+│   ├── ConfirmModal.tsx            # Modal de confirmação
+│   ├── Header.tsx                  # Cabeçalho com toggle de tema
+│   └── TabNav.tsx                  # Tabs
 ├── data/
-│   ├── groups.ts           # 48 seleções em 12 grupos
-│   ├── bracket.ts          # Chaveamento projetado das oitavas
-│   ├── playerPhotos.ts     # Fotos reais dos jogadores (gerado por script)
-│   └── teams/              # Dados detalhados por grupo (A–L)
+│   ├── groups.ts                   # 48 seleções em 12 grupos
+│   ├── matches.ts                  # 104 fixtures oficiais (FIFA, mar/2026)
+│   ├── bracket.ts                  # Chaveamento do simulador
+│   ├── playerPhotos.ts             # Fotos reais (gerado por script)
+│   └── teams/                      # Dados por grupo (elenco, comissão)
 ├── types/
-│   └── index.ts            # Interfaces TypeScript (Team, Group, Match…)
-└── utils/
-    ├── slug.ts             # Gerador de slugs para rotas
-    ├── playerStats.ts      # Utilitários de estatísticas
-    └── theme.ts            # Tokens de tema
+│   └── index.ts                    # Team, Group, BracketTeam, BracketMatch, Round, Fixture, Player, Formation, TeamDetail
+├── utils/
+│   ├── matchDate.ts                # Helpers Fixture
+│   ├── bracketUtils.ts             # BFS dependentes, deriveRounds
+│   ├── playerSearch.ts             # Busca
+│   ├── playerStats.ts              # Avatares, gradientes
+│   ├── playerRankings.ts           # Overall, ranking
+│   ├── myTeamStorage.ts            # localStorage
+│   ├── slug.ts                     # Slug helpers
+│   └── theme.ts                    # Tokens de cor
+└── index.css                       # Tailwind base
+
 scripts/
-└── fetch-avatars.mjs       # Busca fotos reais dos jogadores (Wikidata/Wikipedia/TSDB/Google)
+└── fetch-avatars.mjs               # Busca fotos reais (Wikidata → Wikipedia → TSDB → Google)
 ```
 
 ---
 
 ## Dados
 
-- **Sorteio:** real, realizado em dezembro de 2025 (fonte: FIFA / Wikipedia)
-- **Resultados:** zerados — Copa começa em junho de 2026
-- **Bracket:** projeção baseada nos cabeças de chave; confrontos reais definidos após fase de grupos
-- **Jogadores:** dados ilustrativos para fins de demonstração
+- **Calendário:** FIFA oficial, publicado em 30/mar/2026. 104 jogos (72 grupos + 32 mata-mata), horários convertidos para BRT.
+- **Sorteio:** real, realizado em dezembro de 2025 (fonte: FIFA / Wikipedia).
+- **Resultados:** zerados — Copa começa em 11 de junho de 2026.
+- **Bracket do simulador:** projeção; confrontos reais só definidos após a fase de grupos.
+- **Elencos:** dados ilustrativos estimados.
 
----
+### Correções aplicadas vs fonte FIFA
 
-## Rotas
-
-| Rota | Página |
-|---|---|
-| `/` | Fase de grupos |
-| `/knockout` | Eliminatórias com entrada de placar |
-| `/bracket` | Simulador de chaveamento |
-| `/team/:slug` | Perfil da seleção |
-| `/player/:teamSlug/:playerNumber` | Perfil do jogador |
+A página oficial da FIFA tinha 3 datilografias que corrigimos em `src/data/matches.ts`:
+1. "21 de janeiro" → "21 de junho" (rodada 2, grupo H)
+2. "22 de janeiro" → "22 de junho" (rodada 2, grupo J)
+3. Jogo Argentina × Jordânia: data BRT 28/06 → 27/06 (MD3 termina em 27/06)
 
 ---
 
 ## Decisões técnicas relevantes
 
-- **Tailwind v3** fixado (v4 tem breaking changes)
-- **Sem Context/Store** — dados 100% estáticos, sem re-renders
-- **Tuple `[Team, Team, Team, Team]`** garante 4 times por grupo em compile-time
-- **Reset em cascata via BFS** ao alterar vencedor no bracket
-- **Placares persistidos em `localStorage`** (`copa2026:eliminatoria:v1`) — estado da aba Eliminatórias sobrevive a recargas
-- **`navigator.clipboard`** requer contexto seguro (HTTPS ou localhost)
+- **Tailwind v3** fixado (v4 tem breaking changes).
+- **Sem Context/Store global** — dados 100% estáticos, sem re-renders.
+- **Tuple `[Team, Team, Team, Team]`** garante 4 times por grupo em compile-time.
+- **Reset em cascata via BFS** ao alterar vencedor no bracket.
+- **`Fixture` (single source of truth)** substituiu `team.games` — `getTeamMatches(slug)` / `getGroupMatches(group)` derivam tudo a partir de `src/data/matches.ts`.
+- **Placares e Minha Seleção** persistidos em `localStorage` (`copa2026:eliminatoria:v1`, `copa2026:myTeam:v1`).
+- **`navigator.clipboard`** requer contexto seguro (HTTPS ou localhost).
+- **Tema dark/light manual** — `prefers-color-scheme` do SO é ignorado.
+- **Fuso BRT fixo** — não configurável.
 
 ---
 
@@ -164,4 +175,4 @@ Testes: — (POC, sem cobertura automatizada)
 
 ---
 
-*POC desenvolvida com [OpenCode](https://opencode.ai) + Serena MCP*
+*POC desenvolvida com [OpenCode](https://opencode.ai) + Serena MCP.*

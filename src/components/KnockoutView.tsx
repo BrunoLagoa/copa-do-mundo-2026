@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import ConfirmModal from './ConfirmModal';
 import { RotateCcw } from 'lucide-react';
-import type { BracketTeam, Match, Round } from '../types';
+import type { BracketTeam, BracketMatch, Round } from '../types';
 import { ROUNDS } from '../data/bracket';
 import { ScoreMatchCard } from './ScoreMatchCard';
 import type { MatchScore } from './ScoreMatchCard';
@@ -19,7 +19,7 @@ const STORAGE_KEY = 'copa2026:eliminatoria:v1';
 // ─── derive winner from score ─────────────────────────────────────────────────
 
 function resolveWinner(
-  match: Match,
+  match: BracketMatch,
   score: MatchScore | undefined,
 ): BracketTeam | null {
   if (!score || !match.teamA || !match.teamB) return null;

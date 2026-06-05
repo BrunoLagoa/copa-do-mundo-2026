@@ -2,54 +2,54 @@
 
 > Gerado automaticamente via `/memory-save`.
 > Máximo: 5 sugestões ativas. Ordenadas por confiança + impacto.
-> Última atualização: 2026-04-24 (sessão 3)
+> Última atualização: 2026-04-26 (sessão 4)
 
 ---
 
-## [S1] Executar /review-code no bracket interativo e melhorias da sessão 3
+## [S1] Executar `/review-code` em todo o código acumulado
 
 **Confiança:** Alta
 **Impacto:** Alto
-**Contexto:** O bracket interativo (`BracketView`, `MatchCard`, `RoundColumn`) foi implementado e build passa. As melhorias da sessão 3 (`PlayerPage` tema, `App.tsx` busca, botão copiar) também não passaram por `/review-code`. Pontos de atenção: acessibilidade dos botões de time (aria-labels), semântica HTML do bracket, comportamento em telas < 320px, edge case de times com mesmo nome em grupos diferentes, e `navigator.clipboard` em contextos sem HTTPS.
-**Sugestão:** Executar `/review-code` para garantir qualidade técnica profunda antes de qualquer nova feature.
-**Ação:** `/review-code` como próximo passo.
+**Contexto:** Acumulado de 4 sessões sem `/review-code` formal. Pontos de atenção atuais: acessibilidade dos botões de time (aria-labels), semântica HTML do bracket, comportamento em telas < 320px, edge case de placeholders de mata-mata, validação do single source of truth (`Fixture` × `MatchEntry`), e `navigator.clipboard` em contextos sem HTTPS.
+**Sugestão:** Executar `/review-code` cobrindo todo o código novo desde a sessão 2 (bracket + score + team.detail games removal + fixtures + GroupSchedule + NextMatchCallout + GamesView enrichment).
+**Ação:** `/review-code` como próximo passo prioritário.
 
 ---
 
-## [S2] Atualizar prd.md e spec.md com fase eliminatória e melhorias
+## [S2] Validar visualmente com Playwright (`webapp-testing` skill)
 
 **Confiança:** Alta
 **Impacto:** Médio
-**Contexto:** `prd.md` lista "Fase eliminatória / chaveamento" como Non-Goal. `spec.md` não documenta os novos tipos (`BracketTeam`, `Match`, `Round`, `Player`, `TeamGame`) nem os novos componentes (`FootballPitch`, `PlayerModal`, `PlayerPage`, `TeamPage`). Ambos estão desatualizados após as sessões 2 e 3.
-**Sugestão:** Atualizar `prd.md` (remover Non-Goal, adicionar Goal) e `spec.md` (adicionar seção de tipos do bracket, componentes e decisões de tema/busca).
-**Ação:** Editar `prd.md` §Goals/Non-Goals e `spec.md` §Tipos e §Componentes.
+**Contexto:** `webapp-testing` está disponível em `.agents/skills/` mas não foi usado em nenhuma das 4 execuções. Sessão 4 introduziu 3 superfícies novas (GamesView enriquecido, GroupCard com 3 jogos, TeamPage callout) que precisam de validação visual desktop + mobile + dark mode. A regressão em 1 desses fluxos seria invisível até um usuário reportar.
+**Sugestão:** Adicionar step de captura de screenshots em `/review` ou criar comando auxiliar que rode Playwright contra as 4 rotas principais (`/grupos`, `/jogos`, `/team/brasil`, `/bracket`) em viewports 360×640 e 1280×800, em ambos os temas.
+**Ação:** Carregar `webapp-testing` skill antes do próximo `/review` ou `/review-code`.
 
 ---
 
-## [S3] Adicionar README.md com instruções do projeto
-
-**Confiança:** Alta
-**Impacto:** Baixo
-**Contexto:** O `README.md` atual é o padrão gerado pelo Vite (`# Vite + React + TypeScript`). Não descreve o projeto, funcionalidades, estrutura ou como rodar.
-**Sugestão:** Atualizar com: nome do projeto, objetivo, como rodar (`npm run dev`), estrutura de arquivos, fonte dos dados e funcionalidades disponíveis (grupos, bracket, busca, perfil de jogador).
-**Ação:** Editar `README.md`.
-
----
-
-## [S4] Fixar versões no package.json com ranges exatos
+## [S3] Adicionar testes automatizados para `FIXTURES` (snapshot test)
 
 **Confiança:** Média
 **Impacto:** Médio
-**Contexto:** `package.json` usa ranges com `^` (ex: `"react": "^19.2.5"`). Em uma POC isso é aceitável, mas se o projeto crescer, um `npm install` futuro pode instalar versões incompatíveis.
-**Sugestão:** Considerar usar `--save-exact` ou fixar versões sem `^` para dependências críticas (`react`, `react-dom`, `tailwindcss`).
-**Ação:** Avaliar ao promover de POC para projeto mantido.
+**Contexto:** `src/data/matches.ts` é a single source of truth de 104 entradas críticas. Erro humano (typo, data trocada, horário errado) só é pego por revisão manual. Hoje qualquer um pode editar `FIXTURES` e quebrar UI sem alarme.
+**Sugestão:** Adicionar Vitest com snapshot test de `FIXTURES` que detecta mudanças (ex: alguém removendo M50) e valida invariantes: total = 104, M1–M72 são `phase: 'group'`, M73–M88 são `round-of-32`, etc.
+**Ação:** Avaliar quando promover de POC para projeto mantido.
 
 ---
 
-## [S5] Adicionar aviso visual mais proeminente sobre dados do bracket
+## [S4] Manter memórias `.agents/memory/*` em sincronia com o código
+
+**Confiança:** Alta
+**Impacto:** Alto
+**Contexto:** Na sessão 4, a memória carregada por `/context` estava significativamente desatualizada (não documentava `KnockoutView`, `MyTeamView`, `PlayerComparatorView`, `PlayerSearchView`, `RankingsView`, e o uso de `team.games`). Quem segue a memória cegamente toma decisões baseadas em premissas falsas. Serena foi o "salva-vidas" ao revelar a verdade via código.
+**Sugestão:** Adicionar `/memory-save` automático ao final de CADA sessão significativa (não apenas no fim do `/execute`). Adicionalmente, considerar uma etapa de "verificar consistência da memória" no início de `/context` que compare nomes de arquivos da memória com `list_dir` real e sinalize drift.
+**Ação:** Revisar protocolo de `/memory-save` e adicionar passo de validação em `/context`.
+
+---
+
+## [S5] Considerar code-splitting de `GamesView`/`KnockoutView`/`BracketView` (bundle > 500 kB)
 
 **Confiança:** Média
 **Impacto:** Baixo
-**Contexto:** O bracket atual usa dados projetados (não oficiais). Um aviso de texto pequeno existe em `BracketView`, mas pode passar despercebido. Os confrontos reais só serão definidos após a fase de grupos (jul/2026).
-**Sugestão:** Avaliar se o aviso atual (banner amarelo no topo do bracket) é suficiente ou se deve ser mais destacado — especialmente se o projeto for publicado.
-**Ação:** Decisão de UX/produto — sem urgência técnica.
+**Contexto:** Bundle de 582.18 kB (151 kB gzipped) aciona warning do Vite. Os 3 views maiores (GamesView com 104 cards, KnockoutView, BracketView) representam ~30% do bundle mas só são acessados por 1 rota cada. Code-splitting com `React.lazy` reduziria o initial load significativamente sem complexidade adicional.
+**Sugestão:** Adiar para depois que o projeto sair de POC. Manter registro para acompanhamento.
+**Ação:** Reavaliar quando sair de POC.

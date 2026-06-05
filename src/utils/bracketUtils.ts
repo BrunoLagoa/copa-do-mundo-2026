@@ -1,8 +1,8 @@
-import type { BracketTeam, Match, Round } from '../types';
+import type { BracketTeam, BracketMatch, Round } from '../types';
 
-/** Build a lookup: matchId → Match (across all rounds) */
-export function buildMatchIndex(rounds: Round[]): Record<string, Match> {
-  const index: Record<string, Match> = {};
+/** Build a lookup: matchId → BracketMatch (across all rounds) */
+export function buildMatchIndex(rounds: Round[]): Record<string, BracketMatch> {
+  const index: Record<string, BracketMatch> = {};
   for (const round of rounds) {
     for (const match of round.matches) {
       index[match.id] = match;
@@ -14,7 +14,7 @@ export function buildMatchIndex(rounds: Round[]): Record<string, Match> {
 /** Collect all matchIds that are downstream of a given matchId (inclusive) */
 export function collectDependents(
   startMatchId: string,
-  matchIndex: Record<string, Match>,
+  matchIndex: Record<string, BracketMatch>,
 ): string[] {
   const result: string[] = [];
   const queue = [startMatchId];
