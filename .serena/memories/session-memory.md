@@ -6,7 +6,9 @@
 ## Estado atual do projeto
 - SPA Copa do Mundo 2026 em React 19 + Vite 8 + TypeScript 6 + Tailwind v3
 - Build: zero erros, zero warnings de lint
-- Bundle: ~396 kB JS gzip ~109 kB
+- Bundle: ~614 kB JS / gzip ~157 kB (aumento devido a 1.248 jogadores cadastrados)
+- **48 seleções** × **26 jogadores** = 1.248 jogadores cadastrados
+- **12 grupos** conforme chaveamento oficial FIFA 2026 (sem duplicações)
 
 ## Funcionalidades implementadas
 1. **Grupos** — grid 4 colunas (12 grupos × 4 times), cards com flag + nome + badge Anfitrião
@@ -16,7 +18,8 @@
 5. **PlayerModal** — portal sobre o campo, avatar DiceBear, stats geradas, CTA para perfil
 6. **PlayerPage** — perfil completo do jogador com hero, stats, companheiros de posição
 7. **Dark/Light mode** — ThemeToggler animate-ui + next-themes, toggle binário light↔dark
-8. **Elenco Brasil atualizado** — convocação oficial Copa 2026 em `src/data/teams/grupo-c.ts`
+8. **Elencos atualizados** — todas as 48 seleções com 26 jogadores conforme convocações oficiais FIFA 2026
+9. **Grupos oficiais** — 12 grupos reestruturados conforme sorteio oficial (sem duplicações)
 9. **Script fetch-avatars** — `scripts/fetch-avatars.mjs` documentado no README; gera `src/data/playerPhotos.ts`
 10. **Aba Brasil no TabNav** — atalho direto para `/team/brasil` no menu principal
 

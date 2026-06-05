@@ -41,7 +41,8 @@
 ## Data Architecture
 - Team data split into 12 files by group: `src/data/teams/grupo-a.ts` … `grupo-l.ts`
 - `src/data/teams/index.ts` exports `TEAMS_BY_SLUG: Record<string, TeamDetail>`
-- 23 players per team, 7 games (3 group + 4 KO as "A definir")
+- **26 players per team** (FIFA 2026 rule — expanded from 23), 7 games (3 group + 4 KO as "A definir")
+- **12 groups reflect official FIFA 2026 draw** — no duplicate teams across groups
 - `Player.position` values: `'Goleiro' | 'Defensor' | 'Meio-campista' | 'Atacante'` (4 categories)
 - `Formation` type: 12 formações — `'4-3-3' | '4-4-2' | '4-2-3-1' | '3-5-2' | '3-4-3' | '5-3-2' | '4-5-1' | '4-1-4-1' | '4-3-2-1' | '4-4-1-1' | '3-4-2-1' | '5-4-1'`
 - `ALL_FORMATIONS: Formation[]` exportado de `src/types/index.ts` — fonte única de verdade para listar formações em qualquer componente

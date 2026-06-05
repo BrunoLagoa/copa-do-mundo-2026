@@ -2,11 +2,11 @@
 
 ## Snapshot atual
 
-- Execuções: 22
-- Taxa aprovação: 95% (21/22 aprovados; exec 17 com ressalvas)
+- Execuções: 23
+- Taxa aprovação: 96% (22/23 aprovados; exec 17 com ressalvas)
 - Taxa reprovação: 0%
-- Retrabalho médio: 0.32
-- Principal risco: dark mode em novos componentes sem `dark:` variants
+- Retrabalho médio: 0.30
+- Principal risco: volume de dados massivo (48 seleções × 26 jogadores = 1.248 registros)
 - Tendência: melhorando
 
 ## Histórico de execuções
@@ -35,6 +35,7 @@
 | 20 | Atualização elenco oficial Seleção Brasileira (convocação Copa 2026) | Aprovado | 0 |
 | 21 | Atualização README.md + seção script fetch-avatars | Aprovado | 0 |
 | 22 | Aba Brasil no TabNav → /team/brasil | Aprovado | 0 |
+| 23 | Atualização completa elencos Copa 2026 (48 seleções × 26 jogadores) + reestruturação 12 grupos | Aprovado | 0 |
 
 ## Padrões observados
 - Lint captura erros menores (unused var, hooks order) antes do deploy — pipeline funciona
