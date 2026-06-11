@@ -25,6 +25,7 @@ export const FIXTURES: Fixture[] = [
     homeTeam: 'México', awayTeam: 'África do Sul',
     homeSlug: 'mexico', awaySlug: 'africa-do-sul',
     homeFlag: '🇲🇽', awayFlag: '🇿🇦',
+    homeScore: 0, awayScore: 0,
   },
   {
     id: 'M2', phase: 'group', matchday: 1, group: 'A',

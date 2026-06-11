@@ -113,6 +113,15 @@ export function getFixturesByPhase(): PhaseGroup[] {
 
 // ─── MatchEntry (compat legada usada por GamesView existente) ───────────────
 
+export type MatchStatus = 'past' | 'today' | 'future';
+
+/** Retorna o status de um jogo baseado na data+hora BRT vs agora. */
+export function getMatchStatus(parsedDate: Date): MatchStatus {
+  if (isDateToday(parsedDate)) return 'today';
+  if (parsedDate.getTime() < Date.now()) return 'past';
+  return 'future';
+}
+
 export interface MatchEntry {
   key: string;
   date: string; // ex: "12 Jun"
@@ -134,6 +143,9 @@ export interface MatchEntry {
   group?: GroupId;       // apenas group
   country: 'México' | 'EUA' | 'Canadá';
   isPlaceholder: boolean;
+  homeScore?: number;    // placar fixo (presente apenas em jogos passados com score no matches.ts)
+  awayScore?: number;
+  status: MatchStatus;
 }
 
 const MONTH_PT: Record<number, string> = {
@@ -164,6 +176,7 @@ function phaseLabel(f: Fixture): string {
 export function buildMatchList(): MatchEntry[] {
   return FIXTURES.map((f): MatchEntry => {
     const isPlaceholder = f.homeSlug === 'tbd' || f.awaySlug === 'tbd';
+    const parsedDate = parseFixtureDateTime(f);
     return {
       key: f.id,
       date: formatShortDate(f.date),
@@ -178,12 +191,15 @@ export function buildMatchList(): MatchEntry[] {
       venue: f.venue,
       score: null,
       result: null,
-      parsedDate: parseFixtureDateTime(f),
+      parsedDate,
       time: f.time,
       fullDate: f.date,
       phase: f.phase,
       country: f.country,
       isPlaceholder,
+      homeScore: f.homeScore,
+      awayScore: f.awayScore,
+      status: getMatchStatus(parsedDate),
     };
   }).sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime());
 }

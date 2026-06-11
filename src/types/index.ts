@@ -68,6 +68,8 @@ export interface Fixture {
   awayPlaceholder?: Placeholder;
   homeThirdGroups?: GroupId[];        // ex: 3º de [C,D,F,G,H]
   awayThirdGroups?: GroupId[];
+  homeScore?: number;                 // placar fixo (jogos passados)
+  awayScore?: number;
 }
 
 export interface Player {
