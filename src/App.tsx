@@ -4,6 +4,7 @@ import { Search } from 'lucide-react';
 import { GROUPS } from './data/groups';
 import { Header } from './components/Header';
 import { GroupGrid } from './components/GroupGrid';
+import { StandingsView } from './components/StandingsView';
 import { TabNav } from './components/TabNav';
 import { BracketView } from './components/BracketView';
 import { KnockoutView } from './components/KnockoutView';
@@ -56,6 +57,7 @@ function AppRoutes() {
         <Routes>
           <Route path="/" element={<Navigate to="grupos" replace />} />
           <Route path="/grupos" element={<GroupGrid groups={filteredGroups} />} />
+          <Route path="/classificacao" element={<StandingsView />} />
           <Route path="/bracket" element={<BracketView />} />
           <Route path="/knockout" element={<KnockoutView />} />
           <Route path="/jogos" element={<GamesView />} />

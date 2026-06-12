@@ -66,3 +66,12 @@ export const TEAM_CODE_BY_SLUG: Record<string, string> = {
 export function codeForSlug(slug: string): string | null {
   return TEAM_CODE_BY_SLUG[slug] ?? null;
 }
+
+/** Mapa reverso código FIFA → slug (para casar times vindos da ESPN). */
+export const SLUG_BY_TEAM_CODE: Record<string, string> = Object.fromEntries(
+  Object.entries(TEAM_CODE_BY_SLUG).map(([slug, code]) => [code, slug]),
+);
+
+export function slugForCode(code: string): string | null {
+  return SLUG_BY_TEAM_CODE[code] ?? null;
+}
