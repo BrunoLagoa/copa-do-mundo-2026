@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 
 const TABS = [
   { to: '/grupos',        label: 'Grupos' },
+  { to: '/classificacao', label: 'Classificação' },
   { to: '/knockout',      label: 'Eliminatórias' },
   { to: '/bracket',       label: 'Simulador' },
   { to: '/jogos',         label: 'Jogos' },
