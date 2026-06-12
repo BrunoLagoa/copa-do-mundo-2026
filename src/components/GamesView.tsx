@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle, Clock, MapPin, Pencil, Radio, Trophy, X } from 'lucide-react';
+import { CheckCircle, ChevronDown, Clock, MapPin, Pencil, Radio, Trophy, X } from 'lucide-react';
 import {
   buildMatchList,
   getFixturesByPhase,
@@ -8,6 +8,7 @@ import {
 } from '../utils/matchDate';
 import { useGroupScores } from '../hooks/useGroupScores';
 import { useLiveScores, type LiveScore } from '../hooks/useLiveScores';
+import { MatchDetailsPanel } from './MatchDetailsPanel';
 import type { Fixture, MatchPhase } from '../types';
 
 const ALL_MATCHES = buildMatchList();
@@ -77,20 +78,42 @@ function ScoreCenter({ match, displayHome, displayAway, onChangeHome, onChangeAw
 
   // Placar ao vivo (real) — autoritativo: sobrepõe inputs/placar manual.
   if (live) {
+    const isHalftime = live.statusDetail === 'Intervalo';
+    const half = live.period >= 3 ? 'Prorrogação' : live.period === 2 ? '2º tempo' : '1º tempo';
+    const liveScoreColor = live.isFinished
+      ? 'text-gray-900 dark:text-gray-100'
+      : 'text-red-600 dark:text-red-400';
     return (
-      <div className="flex flex-col items-center gap-0.5 px-2 shrink-0">
+      <div className="flex flex-col items-center gap-1 px-2 shrink-0">
+        {/* Placar — vermelho enquanto ao vivo para chamar atenção */}
         <div className="flex items-center gap-1.5">
-          <span className="text-xl font-bold tabular-nums text-gray-900 dark:text-gray-100">{live.home}</span>
+          <span className={`text-xl font-bold tabular-nums ${liveScoreColor}`}>{live.home}</span>
           <span className="text-sm text-gray-400 dark:text-gray-600 font-bold">×</span>
-          <span className="text-xl font-bold tabular-nums text-gray-900 dark:text-gray-100">{live.away}</span>
+          <span className={`text-xl font-bold tabular-nums ${liveScoreColor}`}>{live.away}</span>
         </div>
+
         {live.isFinished ? (
           <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">Encerrado</span>
         ) : (
-          <span className="inline-flex items-center gap-1 text-[9px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">
-            <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-            Ao vivo{live.clock ? ` · ${live.clock}` : ''}
-          </span>
+          <div className="flex flex-col items-center gap-1">
+            {/* "AO VIVO" com bolinha pulsando */}
+            <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-red-600 dark:text-red-400 uppercase tracking-wider">
+              <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+              Ao vivo
+            </span>
+            {/* Tempo de jogo logo ABAIXO — com contexto do período */}
+            {isHalftime ? (
+              <span className="rounded-full bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                Intervalo
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-red-50 dark:bg-red-900/30 px-2 py-0.5 text-[10px] font-semibold text-red-700 dark:text-red-300">
+                <Clock size={9} className="shrink-0" />
+                <span>{half}</span>
+                {live.clock && <span className="tabular-nums font-bold">· {live.clock}</span>}
+              </span>
+            )}
+          </div>
         )}
         <span className="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">{date}</span>
       </div>
@@ -246,8 +269,11 @@ interface MatchCardProps {
 
 function MatchCard({ match, displayHome, displayAway, onChangeHome, onChangeAway, onSaveScore, live }: MatchCardProps) {
   const [editing, setEditing] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const isPast = match.status === 'past';
   const isLiveNow = Boolean(live?.isLive);
+  // Detalhes da ESPN existem sempre que há jogo ao vivo ou encerrado com event id.
+  const canShowDetails = Boolean(live?.espnEventId);
 
   function handleSave(home: number, away: number) {
     onSaveScore(home, away);
@@ -256,7 +282,7 @@ function MatchCard({ match, displayHome, displayAway, onChangeHome, onChangeAway
 
   return (
     <div
-      className={`bg-white dark:bg-gray-800 rounded-xl border overflow-hidden transition-shadow ${isLiveNow ? 'border-red-300 dark:border-red-600 ring-1 ring-red-200 dark:ring-red-900/60' : 'border-gray-200 dark:border-gray-700'} ${match.isPlaceholder ? 'opacity-80' : ''} ${isPast && !editing && !live ? 'opacity-75 hover:opacity-100' : ''} ${editing ? 'ring-2 ring-blue-400 dark:ring-blue-500 shadow-md' : 'hover:shadow-md'}`}
+      className={`bg-white dark:bg-gray-800 rounded-xl border overflow-hidden transition-shadow ${isLiveNow ? 'border-2 border-red-400 live-card-pulse' : 'border-gray-200 dark:border-gray-700'} ${match.isPlaceholder ? 'opacity-80' : ''} ${isPast && !editing && !live ? 'opacity-75 hover:opacity-100' : ''} ${editing ? 'ring-2 ring-blue-400 dark:ring-blue-500 shadow-md' : 'hover:shadow-md'}`}
     >
       {/* Cabeçalho */}
       <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-700 border-b border-gray-100 dark:border-gray-600">
@@ -307,6 +333,21 @@ function MatchCard({ match, displayHome, displayAway, onChangeHome, onChangeAway
         <Clock size={10} className="text-gray-400" />
         <p className="text-[10px] text-center text-gray-500 dark:text-gray-400">{match.venue}</p>
       </div>
+
+      {/* Toggle de detalhes ESPN — gols, cartões, estatísticas */}
+      {canShowDetails && (
+        <button
+          onClick={() => setShowDetails((v) => !v)}
+          className="w-full flex items-center justify-center gap-1 py-1.5 border-t border-gray-100 dark:border-gray-700 text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+          aria-expanded={showDetails}
+        >
+          {showDetails ? 'Ocultar detalhes' : 'Detalhes'}
+          <ChevronDown size={12} className={`transition-transform ${showDetails ? 'rotate-180' : ''}`} />
+        </button>
+      )}
+
+      {/* Painel de detalhes ESPN */}
+      {canShowDetails && showDetails && live && <MatchDetailsPanel live={live} />}
 
       {/* Painel de edição inline — apenas jogos encerrados em modo edição */}
       {isPast && editing && (

@@ -55,3 +55,28 @@
 .final-card-champion-animate {
 	animation: finalCardChampionGlow 1000ms ease-out;
 }
+
+/* Pulso "ao vivo": borda vermelha que respira + halo expansivo (batimento). */
+@keyframes liveCardPulse {
+	0%, 100% {
+		border-color: rgba(248, 113, 113, 0.85);
+		box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.35);
+	}
+	50% {
+		border-color: rgba(239, 68, 68, 1);
+		box-shadow: 0 0 0 4px rgba(239, 68, 68, 0);
+	}
+}
+
+.live-card-pulse {
+	animation: liveCardPulse 1.6s ease-in-out infinite;
+	will-change: border-color, box-shadow;
+}
+
+/* Respeita quem prefere menos movimento. */
+@media (prefers-reduced-motion: reduce) {
+	.live-card-pulse {
+		animation: none;
+		border-color: rgba(239, 68, 68, 0.9);
+	}
+}
