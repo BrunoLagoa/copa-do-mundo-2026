@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle, ChevronDown, Clock, MapPin, Pencil, Radio, Trophy, X } from 'lucide-react';
+import { Bell, BellRing, CheckCircle, ChevronDown, Clock, MapPin, Pencil, Radio, Trophy, X } from 'lucide-react';
 import {
   buildMatchList,
   getFixturesByPhase,
@@ -8,6 +8,7 @@ import {
 } from '../utils/matchDate';
 import { useGroupScores } from '../hooks/useGroupScores';
 import { useLiveScores, type LiveScore } from '../hooks/useLiveScores';
+import { useGoalAlerts, type GoalAlertsState } from '../hooks/useGoalAlerts';
 import { MatchDetailsPanel } from './MatchDetailsPanel';
 import type { Fixture, MatchPhase } from '../types';
 
@@ -265,15 +266,17 @@ interface MatchCardProps {
   onChangeAway: (v: number) => void;
   onSaveScore: (home: number, away: number) => void;
   live?: LiveScore | null;
+  meta?: LiveScore | null;
 }
 
-function MatchCard({ match, displayHome, displayAway, onChangeHome, onChangeAway, onSaveScore, live }: MatchCardProps) {
+function MatchCard({ match, displayHome, displayAway, onChangeHome, onChangeAway, onSaveScore, live, meta }: MatchCardProps) {
   const [editing, setEditing] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const isPast = match.status === 'past';
   const isLiveNow = Boolean(live?.isLive);
-  // Detalhes da ESPN existem sempre que há jogo ao vivo ou encerrado com event id.
-  const canShowDetails = Boolean(live?.espnEventId);
+  // Detalhes da ESPN existem para qualquer jogo com event id (inclui futuros).
+  const detailsEntry = meta ?? live ?? null;
+  const canShowDetails = Boolean(detailsEntry?.espnEventId);
 
   function handleSave(home: number, away: number) {
     onSaveScore(home, away);
@@ -347,8 +350,8 @@ function MatchCard({ match, displayHome, displayAway, onChangeHome, onChangeAway
       )}
 
       {/* Painel de detalhes ESPN */}
-      {canShowDetails && showDetails && live && (
-        <MatchDetailsPanel live={live} homeName={match.homeTeam} awayName={match.awayTeam} />
+      {canShowDetails && showDetails && detailsEntry && (
+        <MatchDetailsPanel live={detailsEntry} homeName={match.homeTeam} awayName={match.awayTeam} />
       )}
 
       {/* Painel de edição inline — apenas jogos encerrados em modo edição */}
@@ -386,6 +389,7 @@ type CardPropsGetter = (m: MatchEntry) => {
   onChangeAway: (v: number) => void;
   onSaveScore: (home: number, away: number) => void;
   live: LiveScore | null;
+  meta: LiveScore | null;
 };
 
 // ─── DateGroup ────────────────────────────────────────────────────────────────
@@ -452,7 +456,7 @@ function timeAgo(date: Date): string {
   return `há ${Math.round(m / 60)}h`;
 }
 
-function LiveStatusBar({ state }: { state: ReturnType<typeof useLiveScores> }) {
+function LiveStatusBar({ state, alerts }: { state: ReturnType<typeof useLiveScores>; alerts: GoalAlertsState }) {
   const [, setTick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setTick((n) => n + 1), 10_000);
@@ -480,11 +484,28 @@ function LiveStatusBar({ state }: { state: ReturnType<typeof useLiveScores> }) {
           </>
         )}
       </div>
-      <div className="flex items-center gap-1.5 text-[11px] text-gray-400 dark:text-gray-500 shrink-0">
-        <Radio size={11} className={state.loading ? 'animate-pulse text-green-500' : ''} />
-        <span className="tabular-nums">
-          {state.lastUpdated ? `atualizado ${timeAgo(state.lastUpdated)}` : 'atualizando…'}
-        </span>
+      <div className="flex items-center gap-2 shrink-0">
+        {alerts.supported && alerts.permission !== 'denied' && (
+          <button
+            onClick={alerts.toggle}
+            className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors ${
+              alerts.enabled
+                ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
+                : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
+            }`}
+            title={alerts.enabled ? 'Alertas de gol ligados' : 'Receber notificação quando sair gol'}
+            aria-pressed={alerts.enabled}
+          >
+            {alerts.enabled ? <BellRing size={11} /> : <Bell size={11} />}
+            <span className="hidden sm:inline">{alerts.enabled ? 'Alertas de gol' : 'Alertar gols'}</span>
+          </button>
+        )}
+        <div className="flex items-center gap-1.5 text-[11px] text-gray-400 dark:text-gray-500">
+          <Radio size={11} className={state.loading ? 'animate-pulse text-green-500' : ''} />
+          <span className="tabular-nums">
+            {state.lastUpdated ? `atualizado ${timeAgo(state.lastUpdated)}` : 'atualizando…'}
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -493,6 +514,11 @@ function LiveStatusBar({ state }: { state: ReturnType<typeof useLiveScores> }) {
 export function GamesView() {
   const { getScore, setScore } = useGroupScores();
   const live = useLiveScores();
+  const teamNames = useMemo(
+    () => Object.fromEntries(ALL_MATCHES.map((m) => [m.key, { home: m.homeTeam, away: m.awayTeam }])),
+    [],
+  );
+  const alerts = useGoalAlerts(live, teamNames);
   const phases = getFixturesByPhase();
   const koPhases = phases.filter((p) => KO_PHASES.includes(p.phase));
 
@@ -529,6 +555,8 @@ export function GamesView() {
     // Placar ao vivo (real, vindo do proxy) é injetado apenas no display —
     // NÃO é gravado no localStorage, para não sobrescrever o chute do usuário.
     const liveScore = live.getLive(m.key);
+    // Entrada da ESPN em qualquer estado (inclui futuros) → habilita "Detalhes".
+    const metaEntry = live.getEntry(m.key);
 
     return {
       displayHome,
@@ -537,13 +565,14 @@ export function GamesView() {
       onChangeAway: (v: number) => setScore(m.key, saved?.home ?? 0, v),
       onSaveScore: (home: number, away: number) => setScore(m.key, home, away),
       live: liveScore,
+      meta: metaEntry,
     };
   }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-10">
       {/* Barra de status ao vivo — só aparece se o proxy estiver configurado */}
-      <LiveStatusBar state={live} />
+      <LiveStatusBar state={live} alerts={alerts} />
 
       {/* Jogos de hoje */}
       {todayGames.length > 0 && (

@@ -1,20 +1,30 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import { GROUPS } from './data/groups';
 import { Header } from './components/Header';
 import { GroupGrid } from './components/GroupGrid';
-import { StandingsView } from './components/StandingsView';
 import { TabNav } from './components/TabNav';
-import { BracketView } from './components/BracketView';
-import { KnockoutView } from './components/KnockoutView';
-import { TeamPage } from './components/TeamPage';
-import { PlayerPage } from './components/PlayerPage';
-import { GamesView } from './components/GamesView';
-import { PlayerSearchView } from './components/PlayerSearchView';
-import { RankingsView } from './components/RankingsView';
-import { PlayerComparatorView } from './components/PlayerComparatorView';
-import { MyTeamView } from './components/MyTeamView';
+
+// Rotas carregadas sob demanda (code-splitting) → bundle inicial menor.
+const StandingsView = lazy(() => import('./components/StandingsView').then((m) => ({ default: m.StandingsView })));
+const BracketView = lazy(() => import('./components/BracketView').then((m) => ({ default: m.BracketView })));
+const KnockoutView = lazy(() => import('./components/KnockoutView').then((m) => ({ default: m.KnockoutView })));
+const TeamPage = lazy(() => import('./components/TeamPage').then((m) => ({ default: m.TeamPage })));
+const PlayerPage = lazy(() => import('./components/PlayerPage').then((m) => ({ default: m.PlayerPage })));
+const GamesView = lazy(() => import('./components/GamesView').then((m) => ({ default: m.GamesView })));
+const PlayerSearchView = lazy(() => import('./components/PlayerSearchView').then((m) => ({ default: m.PlayerSearchView })));
+const RankingsView = lazy(() => import('./components/RankingsView').then((m) => ({ default: m.RankingsView })));
+const PlayerComparatorView = lazy(() => import('./components/PlayerComparatorView').then((m) => ({ default: m.PlayerComparatorView })));
+const MyTeamView = lazy(() => import('./components/MyTeamView').then((m) => ({ default: m.MyTeamView })));
+
+function RouteFallback() {
+  return (
+    <div className="flex items-center justify-center py-24">
+      <span className="h-6 w-6 animate-spin rounded-full border-2 border-green-500 border-t-transparent" />
+    </div>
+  );
+}
 
 function SearchBar({ query, onChange }: { query: string; onChange: (v: string) => void }) {
   return (
@@ -54,20 +64,22 @@ function AppRoutes() {
     <>
       {isHome && <SearchBar query={query} onChange={setQuery} />}
       <main className={isBracket ? 'w-full' : 'max-w-7xl mx-auto'}>
-        <Routes>
-          <Route path="/" element={<Navigate to="grupos" replace />} />
-          <Route path="/grupos" element={<GroupGrid groups={filteredGroups} />} />
-          <Route path="/classificacao" element={<StandingsView />} />
-          <Route path="/bracket" element={<BracketView />} />
-          <Route path="/knockout" element={<KnockoutView />} />
-          <Route path="/jogos" element={<GamesView />} />
-          <Route path="/busca" element={<PlayerSearchView />} />
-          <Route path="/destaques" element={<RankingsView />} />
-          <Route path="/comparar" element={<PlayerComparatorView />} />
-          <Route path="/minha-selecao" element={<MyTeamView />} />
-          <Route path="/team/:slug" element={<TeamPage />} />
-          <Route path="/player/:teamSlug/:playerNumber" element={<PlayerPage />} />
-        </Routes>
+        <Suspense fallback={<RouteFallback />}>
+          <Routes>
+            <Route path="/" element={<Navigate to="grupos" replace />} />
+            <Route path="/grupos" element={<GroupGrid groups={filteredGroups} />} />
+            <Route path="/classificacao" element={<StandingsView />} />
+            <Route path="/bracket" element={<BracketView />} />
+            <Route path="/knockout" element={<KnockoutView />} />
+            <Route path="/jogos" element={<GamesView />} />
+            <Route path="/busca" element={<PlayerSearchView />} />
+            <Route path="/destaques" element={<RankingsView />} />
+            <Route path="/comparar" element={<PlayerComparatorView />} />
+            <Route path="/minha-selecao" element={<MyTeamView />} />
+            <Route path="/team/:slug" element={<TeamPage />} />
+            <Route path="/player/:teamSlug/:playerNumber" element={<PlayerPage />} />
+          </Routes>
+        </Suspense>
       </main>
     </>
   );

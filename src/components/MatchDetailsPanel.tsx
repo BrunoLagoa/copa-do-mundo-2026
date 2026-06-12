@@ -12,9 +12,17 @@
  * acontece sob demanda — nunca em massa.
  */
 
-import { ArrowDown, ArrowUp, ExternalLink, MapPin, Tv } from 'lucide-react';
+import { ArrowDown, ArrowUp, ExternalLink, MapPin, Newspaper, PlayCircle, Tv } from 'lucide-react';
 import type { LiveScore, TeamStats } from '../hooks/useLiveScores';
-import { useMatchDetails, type TeamLineup, type TimelineEvent } from '../hooks/useMatchDetails';
+import {
+  useMatchDetails,
+  type CommentaryItem,
+  type NewsItem,
+  type PastGame,
+  type TeamLineup,
+  type TimelineEvent,
+  type VideoItem,
+} from '../hooks/useMatchDetails';
 
 // ─── Forma recente: "DWDDW" → bolinhas coloridas ─────────────────────────────
 
@@ -175,6 +183,107 @@ function Lineups({ home, away, homeName, awayName }: { home: TeamLineup | null; 
   );
 }
 
+// ─── Narração minuto a minuto ─────────────────────────────────────────────────
+
+function Commentary({ items }: { items: CommentaryItem[] }) {
+  if (items.length === 0) return null;
+  return (
+    <ul className="space-y-1.5">
+      {items.map((c, i) => (
+        <li key={i} className="flex gap-1.5 text-[11px] leading-snug text-gray-600 dark:text-gray-300">
+          {c.clock && <span className="shrink-0 w-7 text-right font-bold tabular-nums text-red-500">{c.clock}</span>}
+          <span className="min-w-0">{c.text}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// ─── Últimos jogos / confronto direto ─────────────────────────────────────────
+
+function resultColor(r: PastGame['result']): string {
+  return r === 'W' ? 'bg-green-500' : r === 'L' ? 'bg-red-500' : 'bg-gray-400 dark:bg-gray-500';
+}
+
+function PastGameRow({ g }: { g: PastGame }) {
+  return (
+    <div className="flex items-center gap-1.5 text-[10px] text-gray-600 dark:text-gray-300">
+      <span className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-white ${resultColor(g.result)}`}>
+        {g.result ?? '–'}
+      </span>
+      <span className="text-gray-400 dark:text-gray-500">{g.atVs}</span>
+      {g.opponentLogo && <img src={g.opponentLogo} alt="" className="h-3 w-3 shrink-0 object-contain" loading="lazy" />}
+      <span className="truncate" title={g.opponent}>{g.opponent}</span>
+      <span className="ml-auto shrink-0 font-semibold tabular-nums">{g.score}</span>
+    </div>
+  );
+}
+
+function LastFive({ home, away, homeName, awayName }: { home: PastGame[]; away: PastGame[]; homeName: string; awayName: string }) {
+  if (home.length === 0 && away.length === 0) return null;
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <div className="min-w-0 space-y-1">
+        <p className="truncate text-[10px] font-bold text-gray-700 dark:text-gray-200">{homeName}</p>
+        {home.map((g, i) => <PastGameRow key={i} g={g} />)}
+      </div>
+      <div className="min-w-0 space-y-1">
+        <p className="truncate text-[10px] font-bold text-gray-700 dark:text-gray-200">{awayName}</p>
+        {away.map((g, i) => <PastGameRow key={i} g={g} />)}
+      </div>
+    </div>
+  );
+}
+
+function HeadToHead({ games }: { games: PastGame[] }) {
+  if (games.length === 0) return null;
+  return (
+    <div className="space-y-1">
+      {games.map((g, i) => <PastGameRow key={i} g={g} />)}
+    </div>
+  );
+}
+
+// ─── Destaques (vídeos) e notícias ────────────────────────────────────────────
+
+function Videos({ items }: { items: VideoItem[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div className="space-y-1.5">
+      {items.map((v, i) => (
+        <a key={i} href={v.href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 group">
+          {v.thumbnail ? (
+            <img src={v.thumbnail} alt="" className="h-9 w-16 shrink-0 rounded object-cover" loading="lazy" />
+          ) : (
+            <span className="flex h-9 w-16 shrink-0 items-center justify-center rounded bg-gray-200 dark:bg-gray-700">
+              <PlayCircle size={16} className="text-gray-400" />
+            </span>
+          )}
+          <span className="min-w-0 text-[11px] leading-snug text-gray-700 group-hover:text-blue-600 dark:text-gray-200 dark:group-hover:text-blue-400">
+            {v.headline}
+          </span>
+        </a>
+      ))}
+    </div>
+  );
+}
+
+function News({ items }: { items: NewsItem[] }) {
+  if (items.length === 0) return null;
+  return (
+    <ul className="space-y-1">
+      {items.map((n, i) => (
+        <li key={i}>
+          <a href={n.href} target="_blank" rel="noopener noreferrer" className="flex items-start gap-1.5 text-[11px] leading-snug text-gray-700 hover:text-blue-600 dark:text-gray-200 dark:hover:text-blue-400">
+            <Newspaper size={11} className="mt-0.5 shrink-0 text-gray-400" />
+            <span className="min-w-0">{n.headline}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 // ─── Painel ──────────────────────────────────────────────────────────────────
 
 function Divider({ label }: { label: string }) {
@@ -218,6 +327,14 @@ export function MatchDetailsPanel({ live, homeName, awayName }: { live: LiveScor
         </>
       )}
 
+      {/* Narração minuto a minuto */}
+      {details.commentary.length > 0 && (
+        <>
+          <Divider label="Narração" />
+          <Commentary items={details.commentary} />
+        </>
+      )}
+
       {/* Estatísticas */}
       {live.stats && (
         <>
@@ -236,6 +353,43 @@ export function MatchDetailsPanel({ live, homeName, awayName }: { live: LiveScor
             homeName={homeName}
             awayName={awayName}
           />
+        </>
+      )}
+
+      {/* Últimos 5 jogos */}
+      {(details.lastFive.home.length > 0 || details.lastFive.away.length > 0) && (
+        <>
+          <Divider label="Últimos 5 jogos" />
+          <LastFive
+            home={details.lastFive.home}
+            away={details.lastFive.away}
+            homeName={homeName}
+            awayName={awayName}
+          />
+        </>
+      )}
+
+      {/* Confronto direto */}
+      {details.headToHead.length > 0 && (
+        <>
+          <Divider label="Confronto direto" />
+          <HeadToHead games={details.headToHead} />
+        </>
+      )}
+
+      {/* Destaques (vídeos) */}
+      {details.videos.length > 0 && (
+        <>
+          <Divider label="Destaques" />
+          <Videos items={details.videos} />
+        </>
+      )}
+
+      {/* Notícias */}
+      {details.news.length > 0 && (
+        <>
+          <Divider label="Notícias" />
+          <News items={details.news} />
         </>
       )}
 
