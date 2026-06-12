@@ -27,8 +27,26 @@ export interface TimelineEvent {
   text: string;           // descrição completa da ESPN
 }
 
+/** Um jogador na escalação. */
+export interface LineupPlayer {
+  jersey: string;
+  name: string;
+  position: string | null; // abreviação (G, CD-L, LB…)
+  subbedIn: boolean;
+  subbedOut: boolean;
+}
+
+/** Escalação de um time. */
+export interface TeamLineup {
+  side: 'home' | 'away' | null;
+  formation: string | null; // ex. "4-4-2"
+  starters: LineupPlayer[];
+  bench: LineupPlayer[];
+}
+
 export interface MatchDetails {
   timeline: TimelineEvent[];
+  lineups: { home: TeamLineup | null; away: TeamLineup | null };
   loading: boolean;
   error: boolean;
 }
@@ -73,6 +91,41 @@ function parseSummary(
   }
   return out;
 }
+
+function mapPlayer(p: any): LineupPlayer {
+  return {
+    jersey: p?.jersey != null ? String(p.jersey) : '',
+    name: p?.athlete?.shortName ?? p?.athlete?.displayName ?? '—',
+    position: p?.position?.abbreviation ?? null,
+    subbedIn: Boolean(p?.subbedIn),
+    subbedOut: Boolean(p?.subbedOut),
+  };
+}
+
+function parseLineups(
+  json: any,
+  homeId: string | null,
+  awayId: string | null,
+): { home: TeamLineup | null; away: TeamLineup | null } {
+  const rosters: any[] = Array.isArray(json?.rosters) ? json.rosters : [];
+  const result: { home: TeamLineup | null; away: TeamLineup | null } = { home: null, away: null };
+  for (const r of rosters) {
+    const teamId = r?.team?.id != null ? String(r.team.id) : null;
+    const side: 'home' | 'away' | null =
+      teamId && teamId === homeId ? 'home' : teamId && teamId === awayId ? 'away' : null;
+    const players: any[] = Array.isArray(r?.roster) ? r.roster : [];
+    if (players.length === 0) continue;
+    const lineup: TeamLineup = {
+      side,
+      formation: r?.formation ?? null,
+      starters: players.filter((p) => p?.starter).map(mapPlayer),
+      bench: players.filter((p) => !p?.starter).map(mapPlayer),
+    };
+    if (side === 'home') result.home = lineup;
+    else if (side === 'away') result.away = lineup;
+  }
+  return result;
+}
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 export function useMatchDetails(
@@ -83,6 +136,7 @@ export function useMatchDetails(
 ): MatchDetails {
   const { enabled, live } = opts;
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
+  const [lineups, setLineups] = useState<MatchDetails['lineups']>({ home: null, away: null });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
@@ -102,9 +156,10 @@ export function useMatchDetails(
           cache: 'no-store',
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const parsed = parseSummary(await res.json(), homeId, awayId);
+        const json = await res.json();
         if (!cancelled) {
-          setTimeline(parsed);
+          setTimeline(parseSummary(json, homeId, awayId));
+          setLineups(parseLineups(json, homeId, awayId));
           setError(false);
         }
       } catch (err) {
@@ -125,5 +180,5 @@ export function useMatchDetails(
     };
   }, [eventId, homeId, awayId, enabled, live]);
 
-  return { timeline, loading, error };
+  return { timeline, lineups, loading, error };
 }
