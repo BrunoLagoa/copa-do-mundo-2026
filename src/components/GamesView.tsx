@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Clock, MapPin, Trophy } from 'lucide-react';
+import { CheckCircle, Clock, MapPin, Trophy } from 'lucide-react';
 import {
   buildMatchList,
   getFixturesByPhase,
@@ -211,6 +211,7 @@ export function GamesView() {
   const todayGames = ALL_MATCHES.filter((m) => m.status === 'today');
   const upcomingGames = ALL_MATCHES.filter((m) => m.status === 'future');
   const upcomingGroups = groupByShortDate(upcomingGames);
+  const pastGroups = groupByShortDate([...pastGames].reverse());
   const hasAnyContent = ALL_MATCHES.length > 0;
 
   function cardProps(m: MatchEntry) {
@@ -241,6 +242,22 @@ export function GamesView() {
         </section>
       )}
 
+      {/* Resultados anteriores — logo após "Hoje", antes dos próximos */}
+      {pastGames.length > 0 && (
+        <section>
+          <div className="flex items-center gap-2 mb-5">
+            <CheckCircle size={16} className="text-gray-400 dark:text-gray-500" />
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Resultados anteriores</h2>
+            <span className="text-xs text-gray-500 dark:text-gray-400">({pastGames.length})</span>
+          </div>
+          <div className="space-y-8">
+            {pastGroups.map(({ date, games }) => (
+              <DateGroup key={date} date={date} games={games} cardProps={cardProps} />
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Próximos jogos — todos, por data */}
       {upcomingGames.length > 0 && (
         <section>
@@ -252,21 +269,6 @@ export function GamesView() {
           <div className="space-y-8">
             {upcomingGroups.map(({ date, games }) => (
               <DateGroup key={date} date={date} games={games} cardProps={cardProps} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Resultados anteriores */}
-      {pastGames.length > 0 && (
-        <section>
-          <div className="flex items-center gap-2 mb-4">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Resultados anteriores</h2>
-            <span className="text-xs text-gray-500 dark:text-gray-400">({pastGames.length})</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {pastGames.map((m) => (
-              <MatchCard key={m.key} match={m} {...cardProps(m)} />
             ))}
           </div>
         </section>
