@@ -89,7 +89,7 @@ function ScoreCenter({ match, displayHome, displayAway, onChangeHome, onChangeAw
         ) : (
           <span className="inline-flex items-center gap-1 text-[9px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">
             <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-            Ao vivo{live.minute != null ? ` · ${live.minute}'` : ''}
+            Ao vivo{live.clock ? ` · ${live.clock}` : ''}
           </span>
         )}
         <span className="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">{date}</span>
@@ -416,7 +416,7 @@ function LiveStatusBar({ state }: { state: ReturnType<typeof useLiveScores> }) {
     return () => clearInterval(id);
   }, []);
 
-  if (!state.enabled) return null; // proxy não configurado → barra some
+  if (!state.available) return null; // ESPN ainda não respondeu → barra some
 
   return (
     <div className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2">
