@@ -87,6 +87,13 @@
 ## Known Issues
 - SPA routing: direct URL access fails in `npm run preview` without server config (acceptable for POC — resolved on GitHub Pages via 404.html redirect)
 
+## Placar de Jogos (GamesView)
+- **Modelo híbrido (opção C):** passado = placar fixo em `matches.ts` (`homeScore?/awayScore?`), hoje = input editável (localStorage), futuro = horário + `— × —`
+- **Persistência:** `copa2026:group-scores:v1` em localStorage via `src/hooks/useGroupScores.ts`
+- **Status derivado:** `getMatchStatus(parsedDate)` em `src/utils/matchDate.ts` → `'past' | 'today' | 'future'`
+- **Atualização de placares passados:** manual pelo desenvolvedor em `src/data/matches.ts` (`homeScore`/`awayScore`)
+- **Sem automação via API** — decisão explícita (POC estático no GitHub Pages, chave de API não exposta)
+
 ## Build Status
 - `npm run build` + `npm run lint` — **zero errors, zero warnings**
-- Bundle: ~409 kB JS / 30 kB CSS (gzip: ~112 kB JS)
+- Bundle: ~630 kB JS / 41 kB CSS (gzip: ~159 kB JS — aumento esperado por 1.248 jogadores + novos componentes)

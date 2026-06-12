@@ -1,6 +1,6 @@
 ---
 name: vscode
-description: Abre o projeto atual no Visual Studio Code
+description: Open the current project in Visual Studio Code
 license: MIT
 metadata:
   author: BrunoCastro

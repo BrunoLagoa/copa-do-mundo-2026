@@ -1,320 +1,989 @@
 ---
 name: prd
-description: Transforma ideia ou problema em um PRD estruturado, mensurável e pronto para execução. Inclui definição estratégica, experiência do usuário, requisitos técnicos e critérios de validação. Base do sistema — alimenta /spec → /plan → /execute. Não implementa. Em ambiguidade ou trade-off, pode apresentar opções e bloqueia até decisão do usuário. Bloqueia se faltar informação ou houver ambiguidade não resolvida.
+description: Transforms an idea or problem into a structured, measurable and ready-to-execute PRD. Includes strategic definition, user experience, technical requirements and validation criteria. System base — powers /spec → /plan → /execute. Does not implement. In case of ambiguity or trade-off, it can present options and even block the user's decision. Blocks if information is missing or there is unresolved ambiguity.
 license: MIT
 metadata:
   author: BrunoCastro
-  version: "2.1.0"
+  version: "2.2.0"
 ---
+## Common normative reference
 
-## Referência normativa comum
+Mandatory application:
 
-Aplicar obrigatoriamente:
-
-- `_shared/base-output.md`
-- `_shared/base-preconditions.md`
-- `_shared/base-degraded-mode.md`
-- `_shared/target-adapter.md`
-
+### Conteúdo injetado: _shared/base-output.md
 ---
-
-## Objetivo
-
-Transformar uma ideia ou problema em um PRD:
-
-- claro
-- completo
-- mensurável
-- sem ambiguidades
-- pronto para alimentar `/spec` e `/plan`
-- utilizável como fonte única de verdade
-
+description: It is not an executable command. Shared base of output format.
+license: MIT
+hidden: true
+metadata:
+  author: BrunoCastro
+  version: "1.3.0"
 ---
+# Output base (normative reference)
 
-## Integração com sistema
+This basic response format must be applied to system commands:
 
-Este comando:
+## Required language
 
-- é a base do sistema
-- alimenta `/spec` → `/plan` → `/execute`
-- influencia decisões do `/workflow`
-- define escopo e limites do sistema
+- All responses and communications must be in **Brazilian Portuguese (pt-BR)**.
 
----
+## System identity invariants (anti-compaction)
 
-## Uso de modelo (ALINHADO AO MODEL-POLICY)
+- Preserve the operational context of the **Memflow Command System** project in all responses.
+- Treat shared normative rules as reloadable invariants in any context resumption.
+- In case of summarization/context compaction by an LLM, explicitly revalidate:
+  - mandatory language (pt-BR)
+  - project identity and scope (Memflow)
 
-Este comando deve:
+## Usage rules
 
-- utilizar modelo intermediário ou superior
-- priorizar precisão sobre velocidade
-- evitar inferências não validadas
+- If a command has its own more specific format, it can extend this standard.
+- Fields that can be specialized by command:
+  - vocabulary from `Status`
+- internal subsections of `Analysis` and `Problems`
+- Non-overwriteable invariants:
+  - answer in pt-BR
+- section `## Next steps` as the last `##`
+- flow continuity only in `## Next steps`
+- Never automatically execute the next command in the flow without explicit confirmation from the user.
+- **`## Next steps` is always the last `##` of the answer:** do not include any other section titled `##` after `## Next steps`.
+- **Flow continuity only in `## Next steps`:** do not use bullets or lines of type `Next step:` outside this section (includes compact, ultra-light modes or any intermediate summary).
 
----
+## Status
 
-## Entrada esperada
-
-O usuário deve fornecer:
-
-- ideia / problema
-- contexto
-- objetivo desejado
-
-Se incompleto:
-→ solicitar mais informações antes de continuar (OBRIGATÓRIO)
+- Clear current status of the command (e.g. completed, blocked, partial)
 
 ---
 
-## Fase obrigatória: Discovery (ANTES DE GERAR PRD)
+## Analysis
 
-Antes de gerar o PRD, validar:
-
-- Qual problema real está sendo resolvido?
-- Por que isso é importante agora?
-- Como o sucesso será medido?
-- Existem restrições técnicas ou de negócio?
-
-Se qualquer resposta estiver indefinida:
-→ BLOQUEAR geração do PRD
-
-### Ambiguidade, trade-offs e escolha do usuário
-
-Quando houver **mais de uma interpretação válida**, **trade-off relevante** entre alternativas ou **conflito de escopo/comportamento** ainda não decidido pelo usuário:
-
-- **Não** escolher sozinho a direção de produto, escopo ou comportamento esperado.
-- Apresentar **2 a 4 opções** com prós e contras breves; pode incluir **recomendação fundamentada**, sem substituir a decisão do usuário.
-- **BLOQUEAR** a geração (ou continuação) do PRD até o usuário **escolher uma opção** ou **definir critério decisório** explícito.
+- Main content of assessment, planning or execution
+- Subdivisions with `###` when necessary
 
 ---
 
-# Estrutura do PRD
+## Problems
+
+- Violations, risks, ambiguities, limitations or failures detected
+- If there is none: `None`
+
+---
+
+## Next steps
+
+- Concrete actions to continue the flow
+### Conteúdo injetado: _shared/base-preconditions.md
+---
+description: It is not an executable command. Shared basis of preconditions.
+license: MIT
+hidden: true
+metadata:
+  author: BrunoCastro
+  version: "1.4.1"
+---
+
+# Common base of preconditions (normative reference)
+
+Apply this block of preconditions to operational commands.
+
+---
+
+## Early activation rule (CRITICAL)
+
+Before applying any precondition block, identify the active command.
+
+If the active command is `/context`:
+
+- DO NOT require prior context
+- DO NOT ask the user to run `/context` again
+- immediately execute the context, memory, metrics, skills and anti-compaction invariant loading defined by `/context` itself
+
+If the active command is `/memory-init`:
+
+- allow bootstrapping the memory structure without prior context
+- after bootstrap, guide re-entry through `/context`
+
+---
+
+## Context precondition (REQUIRED)
+
+Before any execution, except `/context` and `/memory-init`:
+
+- Check if the `/context` command was executed
+
+If NO:
+
+- BLOCK execution
+- Request execution of `/context`
+- DO NOT continue
+
+---
+
+## Anti-compaction invariants (REQUIRED)
+
+Before any operational command (except `/context`), validate that `/context` has confirmed:
+
+- mandatory language: pt-BR
+- project identity and scope: Memflow Command System
+
+If invariants are missing or failed:
+
+- BLOCK execution
+- require re-execution of `/context`
+- DO NOT continue in partial silent mode
+
+---
+
+## Safe continuity checklist (anti-bypass)
+
+Before proceeding to any critical step, confirm:
+
+- explicit decision of available `/workflow` (when applicable)
+- valid anti-compaction invariants (pt-BR + Memflow)
+- explicit user confirmation before executing the next command in the flow
+
+If any item fails:
+
+- BLOCK continuity
+- record problem in output
+- request corrective action before proceeding
+
+---
+
+## Memory validation (MANDATORY)
+
+If persistent memory exists in the project:
+
+- .agents/memory/memory.md
+- .agents/memory/session-memory.md
+- .agents/memory/decisions.md
+- .agents/memory/quality-metrics.md
+
+So:
+
+- ensure it was charged by `/context`
+- use as a primary context base
+
+---
+
+## Memory not loaded
+
+If memory exists but has NOT been loaded:
+
+- consider incomplete context
+- DO NOT proceed with critical execution
+- recommend re-execution of `/context`
+
+---
+
+## Lack of memory
+
+If memory does NOT exist:
+
+- operate normally
+- use docs, code and MCPs as fallback
+
+---
+
+## Exception: `/context` command
+
+- DOES NOT require prior context
+- This command is responsible for:
+  - load context
+  - load memory
+  - validate environment
+
+---
+
+## Exception: `/memory-init` command
+
+- can bootstrap from memory structure without prior context
+- after bootstrap, must require reentry via `/context` before any critical execution
+
+---
+
+## Canonical boot order
+
+1. `/memory-init` (only when memory structure does not exist)
+2. `/context` (context and memory mandatory loading)
+3. decision commands/execution (`/workflow`, `/execute`, `/plan`, etc.)
+
+## Global consistency rule
+
+- No command can execute without valid context
+- No command can ignore available memory
+- Avoid execution with partial or inconsistent context
+- No critical command can execute without valid anti-compaction invariants
+
+---
+
+## Path resolution (required)
+
+- Rules for resolving normative paths and `model-policy.md` must follow `_shared/target-adapter.md`.
+- Never infer paths outside the target adapter.
+- When the active command is already loaded:
+  - assume the root of this command as the context of normative resolution
+  - do not ask the user for manual confirmation about the location of `_shared/*.md` and `model-policy.md`
+- If the adapter is not available:
+  - report absence
+  - DO NOT use fallback
+
+---
+
+## Precedence rule
+
+- This file defines global execution invariants.
+- Commands can extend operational rules, without invalidating invariants.
+- Non-overwriteable invariants:
+  - no critical execution without `/context`
+  - available memory cannot be ignored
+  - normative resolution must follow `_shared/target-adapter.md`
+  - anti-compaction invariants (pt-BR + Memflow) must be valid before critical execution
+
+---
+
+## Important
+
+- This file ensures system consistency
+- Avoid execution without context
+- Ensures correct memory usage
+### Conteúdo injetado: _shared/base-degraded-mode.md
+---
+description: It is not an executable command. Shared base in degraded mode.
+license: MIT
+hidden: true
+metadata:
+  author: BrunoCastro
+  version: "1.1.0"
+---
+# Degraded mode common base (normative reference)
+
+Apply this block when `.agents` is unavailable, missing or incomplete.
+
+## Degraded mode
+
+- Do not automatically block just due to the absence of `.agents`.
+- Activate degraded mode and explicitly warn in the response.
+- Proceed with available sources:
+  - `docs`
+  - `model-policy.md` resolved by active target (via `_shared/target-adapter.md`)
+  - actual project code
+  - MCPs available
+- Reduce confidence in conclusions and record limitations.
+
+## Precedence rule
+
+- This file defines the common pattern.
+- Specific rules for each command can extend this pattern.
+- Non-overwriteable invariants:
+  - absence of `.agents` does not automatically block
+  - limitations must be explicitly reported
+  - reliability of the analysis should be reduced
+### Conteúdo injetado: _shared/target-adapter.md
+---
+description: It is not an executable command. Target adapter for normative resolution in OpenCode.
+license: MIT
+hidden: true
+metadata:
+  author: BrunoCastro
+  version: "1.3.0"
+---
+# Target adapter (OpenCode)
+
+Apply this adapter when the active target is `opencode`.
+
+## Resolution of normative paths (mandatory)
+
+- For system normative files, use the official paths by scope:
+  - `~/.config/opencode/commands/memflow/...` (global)
+  - `.opencode/commands/memflow/...` (local)
+- In OpenCode installations generated by the Memflow installer, executable commands may contain injected normative blocks (`_shared/*.md` and `model-policy.md`) in the file itself.
+- In these generated artifacts, `_shared/` and `model-policy.md` may not exist as separate files on the target.
+- Never resolve:
+  - `model-policy.md`
+  - `_shared/*.md`
+  relating to the open project.
+
+## Automatic scope detection (required)
+
+- Determine installation scope before asking the user for any confirmation.
+- Mandatory order:
+  1. Detect the directory of the running command (`.../commands/memflow/<command>.md`) and use this directory as the normative root.
+  2. If the detected root is in `~/.config/opencode/commands/memflow`, classify as **global**.
+  3. If the detected root is in `.opencode/commands/memflow`, classify as **local**.
+  4. Solve `_shared/*.md` and `model-policy.md` relative to the detected root.
+- Only attempt discovery via official paths (`global -> local`) when the path of the command being executed is not available.
+- Do not ask the user to confirm the location of normative files when automatic detection is possible.
+
+## Lack of official file
+
+- If the file is not found in any official path:
+  - report absence
+  - DO NOT use fallback
+
+## Precedence
+
+- This adapter sets the resolution to `opencode`.
+- Commands can only extend read operational rules.
+- Non-overwriteable invariants:
+  - automatic scope detection when command is active
+  - normative resolution relative to the detected root or per block injected into the installed command
+  - absence in official path without fallback outside the adapter
+### Conteúdo injetado: model-policy.md
+---
+description: It is not an executable command. Shared template policy base.
+license: MIT
+hidden: true
+metadata:
+  author: BrunoCastro
+  version: "1.0.0"
+---
+
+# Model Policy — Model Orchestration
+
+This file defines the rules for using, selecting, and scaling AI models in the project.
+
+It guarantees:
+
+- cost reduction
+- consistency of decisions
+- technical quality
+- system predictability
+
+---
+
+## Objective
+
+Standardize how models are used at each stage of the workflow:
+
+- `/workflow`
+- `/brainstorm`
+- `/plan`
+- `/execute`
+- `/review`
+- `/review-enforce-rules` (optional/recomendado)
+
+---
+
+## Fundamental principle
+
+👉 Start with the most economical model
+👉 Escalate only when necessary
+
+---
+
+## Model roles
+
+### Free model (e.g. GPT-4.1, GPT-5 mini)
+
+Use for:
+
+- initial context exploration
+- quick questions
+- simple task screening
+- preliminary validations
+
+Features:
+
+- minimum cost
+- quick response
+- lower robustness for complex implementation
+
+---
+
+### Economy model (e.g. Haiku, GPT-5.4 mini, Gemini 3 Flash)
+
+Use for:
+
+- code execution
+- CRUD
+- UI components
+- simple adjustments
+- specific corrections
+
+Features:
+
+- fast
+- cheap
+- reduced complex reasoning ability
+
+---
+
+### Intermediate model (e.g. Gemini 3.1 Pro, GPT-5.3-Codex, GPT-5.4, Sonnet)
+
+Use for:
+
+- planning (`/plan`)
+- architecture
+- systems integration
+- business rules
+- technical decisions
+
+Features:
+
+- best cost balance/qualidade
+- main reasoning model
+
+---
+
+### Advanced model (e.g. GPT-5.4, Opus)
+
+Use only for:
+
+- complex refactoring
+- difficult debugging
+- large code analysis
+- persistent problems
+
+Features:
+
+- high cost
+- high reasoning ability
+
+---
+
+## Standard strategy
+
+### Mandatory separation
+
+- Planning → smarter model
+- Execution → most economical model
+- Optional initial screening → free model
+
+---
+
+### Optimal flow
+
+
+```
+/workflow → decide
+   ↓
+/brainstorm (optional — exploration and trade-offs)
+   ↓
+/plan (modelo inteligente)
+   ↓
+/execute (economic model)
+```
+
+
+---
+
+## Selection rules
+
+### By complexity
+
+| Complexity | Model                    |
+| ------------ | ------------------------- |
+| Very low  | Free                      |
+| Low        | Economic                 |
+| Medium        | Intermediate             |
+| High         | Intermediate or Advanced |
+
+---
+
+### By task type
+
+#### Economic
+
+- "create function"
+- "component adjustment"
+- "fix simple bug"
+- "implement low risk task"
+
+#### Intermediary
+
+- "create system"
+- "architecture"
+- "backend integration"
+- "define technical approach"
+
+#### Advanced
+
+- "refactor project"
+- "analyze entire code"
+- "complex debug"
+
+---
+
+## Operational selection by level
+
+For each task, define:
+
+1. recommended level
+2. main model
+3. alternative models of the same level
+
+Rule:
+
+- indicate exactly 1 main model per run
+- list 2-3 alternatives of the same level for availability contingency
+- keep fallback at same level before scaling
+
+---
+
+## Fallback due to unavailability or operational degradation
+
+Trigger fallback for alternatives of the same level when there is:
+
+- main model unavailability
+- quota/limit reached
+- unstable latency that compromises continuity
+
+Flow:
+
+1. try alternatives of the same level in the defined order
+2. if no alternative is available/viable, reassess risk and complexity
+3. escalate to a higher level only if necessary
+
+Not allowed:
+
+- reduce level in tasks already classified as medium/high complexity
+- skip alternatives of the same level without justification
+
+---
+
+## Autoclimb
+
+### Main rule
+
+If there is a failure:
+
+1st failure → try to fix locally
+2nd failure → review approach (possible plan error)
+3rd failure → scale model
+
+---
+
+### Example of climbing
+
+
+```
+Free/Economic → Intermediate → Advanced
+```
+
+
+---
+
+## Critical rules
+
+- DO NOT use advanced template by default
+- DO NOT use economic models for complex decisions
+- DO NOT use free model for critical implementation
+- DO NOT skip planning on medium/high complexity tasks
+- DO NOT insist on a model that has repeatedly failed
+
+---
+
+## Integration with commands
+
+### `/workflow`
+
+- decides recommended level, main model and alternatives of the same level
+
+---
+
+### `/brainstorm`
+
+- phases 1–2: economic model by default
+- validation in the code and comparison of trade-offs: intermediate when complexity ≥ medium
+- final recommendation and DoD: strongest model when complexity ≥ medium or risk ≥ medium
+
+---
+
+### `/plan`
+
+- use intermediate or higher model
+
+---
+
+### `/execute`
+
+- use economic model
+- climb if necessary
+
+---
+
+### `/review`
+
+- validate whether the model was suitable
+
+---
+
+### `/review-enforce-rules`
+
+- apply optional hard validation of model usage in critical scenarios
+
+---
+
+## Consistency rules
+
+- model must be coherent with complexity
+- Main model must have viable alternatives of the same level
+- decisions must be justified
+- climbing must be progressive
+
+---
+
+## Performance objective
+
+- reduce cost by 50%–80%
+- maintain high quality
+- avoid rework
+- use free/economic whenever risk allows
+
+---
+
+## Anti-patterns (avoid)
+
+- use advanced template for simple tasks
+- use free model for high impact task
+- perform complex tasks without planning
+- ignore repeated failures
+- mix responsibilities (plan + execute at the same level)
+
+---
+
+## Final summary
+
+👉 Model is NOT the brain
+👉 Workflow is the brain
+👉 Model is a tool
+
+---
+
+## Expected result
+
+- cheaper execution
+- smarter decisions
+- predictable system
+- lower error rate
+
+---
+
+## Objective
+
+Transform an idea or problem into a PRD:
+
+- Of course
+- full
+- measurable
+- unambiguously
+- ready to feed `/spec` and `/plan`
+- usable as a single source of truth
+
+---
+
+## System integration
+
+This command:
+
+- is the basis of the system
+- feeds `/spec` → `/plan` → `/execute`
+- influences `/workflow` decisions
+- defines system scope and limits
+
+---
+
+## Model usage (ALIGNED TO MODEL-POLICY)
+
+This command should:
+
+- use intermediate or higher model
+- prioritize accuracy over speed
+- avoid unvalidated inferences
+
+---
+
+## Expected input
+
+The user must provide:
+
+- idea/problem
+- context
+- desired goal
+
+If incomplete:
+→ request more information before continuing (MANDATORY)
+
+---
+
+## Mandatory phase: Discovery (BEFORE GENERATING PRD)
+
+Before generating the PRD, validate:
+
+- What real problem is being solved?
+- Why is this important now?
+- How will success be measured?
+- Are there any technical or business restrictions?
+
+If any answer is undefined:
+→ BLOCK PRD generation
+
+## Mandatory save confirmation (BEFORE any PRD generation)
+
+Before starting the analysis and creation of the PRD, ASK the user:
+
+- Do you want to save the PRD that will be created to maintain documented data?
+
+It is mandatory to present clear options:
+
+- Yes, save the PRD
+- No, just show in chat
+
+Rules:
+
+- DO NOT start PRD generation before user response
+- Ask the question in a structured dialogue with selectable options (not in free text)
+- If the answer is ambiguous, ask again using the same options
+- Maintain the same structured dialogue format in repetition attempts
+- Record the chosen preference in the output (save or not save)
+- If the user chooses to save, define and register the documentation destination before continuing
+
+### Ambiguity, trade-offs and user choice
+
+When there is **more than one valid interpretation**, **relevant trade-off** between alternatives or **scope conflict/comportamento** not yet decided by the user:
+
+- **Don't** choose product direction, scope, or expected behavior on your own.
+- Present **2 to 4 options** with brief pros and cons; may include **reasoned recommendation**, without replacing the user's decision.
+- **BLOCK** the generation (or continuation) of the PRD until the user **chooses an option** or **defines explicit decision criteria**.
+
+---
+
+# PRD structure
 
 ---
 
 ## 1. Executive Summary
 
 ### Problem Statement
-- Descrição objetiva do problema (1–2 frases)
+- Objective description of the problem (1–2 sentences)
 
 ### Proposed Solution
-- Descrição objetiva da solução (1–2 frases)
+- Objective description of the solution (1–2 sentences)
 
-### Success Criteria (KPIs obrigatórios)
-- Métricas mensuráveis
-- Devem conter valor numérico + condição
+### Success Criteria (mandatory KPIs)
+- Measurable metrics
+- Must contain numeric value + condition
 
-Exemplo:
-- Tempo de resposta < 200ms em 95% dos casos
-- Taxa de sucesso ≥ 90%
-
----
-
-## 2. Contexto
-
-- Cenário atual
-- Impacto do problema
-- Por que resolver isso agora
+Example:
+- Response time < 200ms in 95% of cases
+- Success rate ≥ 90%
 
 ---
 
-## 3. Objetivo
+## 2. Context
 
-- Resultado esperado
-- KPIs obrigatórios (não opcional)
+- Current scenario
+- Impact of the problem
+- Why settle this now
 
 ---
 
-## 4. Usuário e Experiência
+## 3. Objective
+
+- Expected result
+- Mandatory KPIs (not optional)
+
+---
+
+## 4. User and Experience
 
 ### Personas
-- Quem será impactado
-- Dor atual
+- Who will be impacted
+- Current pain
 
-### User Stories (OBRIGATÓRIO)
-Formato:
+### User Stories (MANDATORY)
+Format:
 > As a [user], I want to [action] so that [benefit]
 
-### Critérios de aceite por história (OBRIGATÓRIO)
+### Acceptance criteria per story (MANDATORY)
 
-**Escopo:** cada User Story acima.
+**Scope:** each User Story above.
 
-- O que precisa ser verdadeiro para **aquela história** estar pronta (incluir referência à história).
-- Casos positivos e negativos **no recorte da história** (comportamento, dados, permissões).
-- **Não** repetir aqui a validação global da entrega ou do incremento — isso fica na seção **11** (nível PRD / release).
-
----
-
-## 5. Escopo
-
-### Inclui
-- Lista clara do que será feito
-
-### Non-Goals (OBRIGATÓRIO)
-- O que NÃO será feito nesta fase
-- Decisões conscientes de exclusão
+- What needs to be true for **that story** to be ready (include reference to the story).
+- Positive and negative cases **in the story outline** (behavior, data, permissions).
+- **Do not** repeat the global delivery or increment validation here — this is in section **11** (PRD / release level).
 
 ---
 
-## 6. Regras de negócio
+## 5. Scope
 
-- Regras obrigatórias
-- Restrições
-- Comportamentos esperados
+### Includes
+- Clear list of what will be done
 
----
-
-## 7. AI Requirements (Se aplicável)
-
-### Modelos e ferramentas
-- LLMs utilizados
-- APIs externas
-- Ferramentas auxiliares
-
-### Estratégia de fallback
-- O que acontece em falhas
+### Non-Goals (MANDATORY)
+- What will NOT be done at this stage
+- Conscious exclusion decisions
 
 ---
 
-## 8. Estratégia de Avaliação
+## 6. Business rules
 
-- Como validar qualidade
+- Mandatory rules
+- Restrictions
+- Expected behaviors
+
+---
+
+## 7. AI Requirements (If applicable)
+
+### Templates and tools
+- LLMs used
+- External APIs
+- Auxiliary tools
+
+### Fallback strategy
+- What happens in failures
+
+---
+
+## 8. Assessment Strategy
+
+- How to validate quality
 - Benchmarks
-- Métricas de precisão
-- Testes obrigatórios
+- Accuracy metrics
+- Mandatory tests
 
-Exemplo:
-- ≥ 85% precisão
-- ≤ 5% inconsistência
+Example:
+- ≥ 85% accuracy
+- ≤ 5% inconsistency
 
 ---
 
-## 9. Especificação Técnica
+## 9. Technical Specification
 
-### Arquitetura (alto nível)
-- Fluxo de dados
-- Componentes
+### Architecture (high level)
+- Data flow
+- Components
 
-### Integrações
+### Integrations
 - APIs
-- Banco de dados
-- autenticação
+- Database
+- authentication
 
-### Segurança
-- tratamento de dados
-- privacidade
-
----
-
-## 10. Fluxo funcional
-
-- Passo a passo da interação
-- Comportamento do sistema
+### Security
+- data processing
+- privacy
 
 ---
 
-## 11. Critérios de aceite (nível PRD / release)
+## 10. Functional flow
 
-**Escopo:** conjunto da entrega, incremento ou objetivo deste PRD — não substitui os critérios **por história** da seção 4.
-
-- Como validar sucesso **do todo** (demo, go-live, critérios de aceite de release).
-- Casos positivos e de erro **transversais** (fluxos ponta a ponta, integrações, SLAs agregados, regressão esperada).
-- Deve ser **consistente** com os critérios por história (seção 4); **não** contradizer.
+- Interaction step by step
+- System behavior
 
 ---
 
-## 12. Riscos e dependências
+## 11. Acceptance criteria (PRD / release level)
 
-- Pontos indefinidos
-- Dependências externas
-- riscos técnicos
+**Scope:** set of delivery, increment or objective of this PRD — does not replace the criteria **by history** in section 4.
 
----
-
-## Integração com `/spec` (CRÍTICO)
-
-- Este PRD deve permitir criação de `/spec` sem suposições
-- Se o `/spec` precisar assumir algo → PRD está incompleto
+- How to validate **complete** success (demo, go-live, release acceptance criteria).
+- **Cross-sectional** positive and error cases (end-to-end flows, integrations, aggregated SLAs, expected regression).
+- Must be **consistent** with the criteria per story (section 4); **not** contradict.
 
 ---
 
-## Validação obrigatória
+## 12. Risks and dependencies
 
-Antes de finalizar, responder:
-
-- PRD está completo: SIM / NÃO
-- Existem dúvidas abertas: (listar)
-- Conflito com `.agents`: SIM / NÃO
-- Conflito com `docs`: SIM / NÃO
+- Undefined points
+- External dependencies
+- technical risks
 
 ---
 
-## Regras de bloqueio
+## Integration with `/spec` (CRITICAL)
 
-- Se houver ambiguidade → PARAR
-- Se faltar informação → PARAR
-- Se KPIs não forem definidos → PARAR
-- Se não houver Non-Goals → PARAR
-- Se Discovery não foi realizado → PARAR
-- Se existir ambiguidade/trade-off não resolvido e o usuário ainda não escolheu opção nem critério decisório (ver *Ambiguidade, trade-offs e escolha do usuário*) → PARAR
+- This PRD should allow creation of `/spec` without guesswork
+- If `/spec` needs to assume something → PRD is incomplete
 
 ---
 
-## Importante
+## Mandatory validation
 
-- NÃO implementar
-- NÃO gerar código
-- NÃO assumir comportamento
-- NÃO inventar requisitos
-- Este comando define a base de todo o sistema
+Before finishing, answer:
+
+- PRD is complete: YES / NO
+- There are open questions: (list)
+- Conflict with `.agents`: YES / NO
+- Conflict with `docs`: YES / NO
 
 ---
 
-## Formato obrigatório de saída
+## Blocking rules
+
+- If there is ambiguity → STOP
+- If information is missing → STOP
+- If KPIs are not defined → STOP
+- If there are no Non-Goals → STOP
+- If Discovery has not been carried out → STOP
+- If there is an unresolved ambiguity/trade-off and the user has not yet chosen an option or decision criteria (see *Ambiguity, trade-offs and user choice*) → STOP
+
+---
+
+## Important
+
+- DO NOT implement
+- DO NOT generate code
+- DO NOT assume behavior
+- DO NOT invent requirements
+- This command sets the base of the entire system
+
+---
+
+## Mandatory output format
 
 ## Status
 
-- PRD criado / Bloqueado
+- PRD created / Blocked
 
 ---
 
-## Análise
+## Analysis
 
-### Clareza do problema
+### Save preference
 
-- bem definido / parcial / indefinido
-
----
-
-### Qualidade do PRD
-
-- completo / incompleto
+- User decision: Save / Don't save
+- When to save: Defined documentation destination
 
 ---
 
-### Pronto para especificação
+### Clarity of the problem
 
-- SIM / NÃO
-
----
-
-## Problemas
-
-- ambiguidades
-- lacunas
-- inconsistências
-
-Se não houver:
-→ Nenhum
+- well-defined / partial / indefinite
 
 ---
 
-## Próximos passos
+### Quality of the PRD
 
-Se completo:
+- complete / incomplete
 
-- Seguir para `/spec`
+---
 
-Se incompleto:
+### Ready for specification
 
-- Ajustar PRD
-- Solicitar mais informações
+- YES / NO
+
+---
+
+## Problems
+
+- ambiguities
+- gaps
+- inconsistencies
+
+If there is none:
+→ None
+
+---
+
+## Next steps
+
+If complete:
+
+- Go to `/spec`
+
+If incomplete:
+
+- Adjust PRD
+- Request more information
