@@ -493,7 +493,7 @@ function LiveStatusBar({ state, alerts }: { state: ReturnType<typeof useLiveScor
                 ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
                 : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
             }`}
-            title={alerts.enabled ? 'Alertas de gol ligados' : 'Receber notificação quando sair gol'}
+            title={alerts.enabled ? 'Alertas de gol ligados (som + notificação)' : 'Receber som + notificação quando sair gol'}
             aria-pressed={alerts.enabled}
           >
             {alerts.enabled ? <BellRing size={11} /> : <Bell size={11} />}
