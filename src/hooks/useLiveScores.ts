@@ -51,6 +51,7 @@ export interface LiveScore {
   clock: string | null; // ex. "67'", "90'+8'" — só quando ao vivo
   isLive: boolean;       // state === 'in'
   isFinished: boolean;   // state === 'post'
+  isPre: boolean;        // state === 'pre' (ainda não começou)
   /** Rótulo pt-BR do momento do jogo: "1º tempo", "Intervalo", "2º tempo", "Encerrado". */
   statusDetail: string;
   period: number;        // 1, 2, 3 (prorrogação)…
@@ -72,7 +73,10 @@ export interface LiveScore {
 export interface LiveScoresState {
   /** true assim que a ESPN responde válido ao menos uma vez → mostra a barra */
   available: boolean;
+  /** Placar autoritativo — só jogos ao vivo/encerrados (futuros retornam null). */
   getLive: (matchId: string) => LiveScore | null;
+  /** Entrada da ESPN em qualquer estado (inclui futuros) — p/ painel de detalhes. */
+  getEntry: (matchId: string) => LiveScore | null;
   lastUpdated: Date | null;
   liveCount: number;
   loading: boolean;
@@ -166,7 +170,6 @@ function parseEspn(json: any, pairIndex: Map<string, FixtureRef[]>): Record<stri
     if (cs.length < 2) continue;
 
     const state: string = e?.status?.type?.state; // 'pre' | 'in' | 'post'
-    if (state === 'pre') continue; // ainda não começou → sem placar
 
     const [a, b] = cs;
     const ca: string | undefined = a?.team?.abbreviation;
@@ -203,6 +206,7 @@ function parseEspn(json: any, pairIndex: Map<string, FixtureRef[]>): Record<stri
       clock,
       isLive: state === 'in',
       isFinished: state === 'post',
+      isPre: state === 'pre',
       statusDetail: statusLabel(state, period, e?.status, clock),
       period,
       venue: v
@@ -279,6 +283,14 @@ export function useLiveScores(): LiveScoresState {
   }, [fetchRange]);
 
   const getLive = useCallback(
+    (matchId: string): LiveScore | null => {
+      const e = scores[matchId];
+      return e && !e.isPre ? e : null; // futuros não exibem placar
+    },
+    [scores],
+  );
+
+  const getEntry = useCallback(
     (matchId: string): LiveScore | null => scores[matchId] ?? null,
     [scores],
   );
@@ -288,5 +300,5 @@ export function useLiveScores(): LiveScoresState {
     [scores],
   );
 
-  return { available, getLive, lastUpdated, liveCount, loading, error };
+  return { available, getLive, getEntry, lastUpdated, liveCount, loading, error };
 }

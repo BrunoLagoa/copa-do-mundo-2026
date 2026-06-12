@@ -265,15 +265,17 @@ interface MatchCardProps {
   onChangeAway: (v: number) => void;
   onSaveScore: (home: number, away: number) => void;
   live?: LiveScore | null;
+  meta?: LiveScore | null;
 }
 
-function MatchCard({ match, displayHome, displayAway, onChangeHome, onChangeAway, onSaveScore, live }: MatchCardProps) {
+function MatchCard({ match, displayHome, displayAway, onChangeHome, onChangeAway, onSaveScore, live, meta }: MatchCardProps) {
   const [editing, setEditing] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const isPast = match.status === 'past';
   const isLiveNow = Boolean(live?.isLive);
-  // Detalhes da ESPN existem sempre que há jogo ao vivo ou encerrado com event id.
-  const canShowDetails = Boolean(live?.espnEventId);
+  // Detalhes da ESPN existem para qualquer jogo com event id (inclui futuros).
+  const detailsEntry = meta ?? live ?? null;
+  const canShowDetails = Boolean(detailsEntry?.espnEventId);
 
   function handleSave(home: number, away: number) {
     onSaveScore(home, away);
@@ -347,8 +349,8 @@ function MatchCard({ match, displayHome, displayAway, onChangeHome, onChangeAway
       )}
 
       {/* Painel de detalhes ESPN */}
-      {canShowDetails && showDetails && live && (
-        <MatchDetailsPanel live={live} homeName={match.homeTeam} awayName={match.awayTeam} />
+      {canShowDetails && showDetails && detailsEntry && (
+        <MatchDetailsPanel live={detailsEntry} homeName={match.homeTeam} awayName={match.awayTeam} />
       )}
 
       {/* Painel de edição inline — apenas jogos encerrados em modo edição */}
@@ -386,6 +388,7 @@ type CardPropsGetter = (m: MatchEntry) => {
   onChangeAway: (v: number) => void;
   onSaveScore: (home: number, away: number) => void;
   live: LiveScore | null;
+  meta: LiveScore | null;
 };
 
 // ─── DateGroup ────────────────────────────────────────────────────────────────
@@ -529,6 +532,8 @@ export function GamesView() {
     // Placar ao vivo (real, vindo do proxy) é injetado apenas no display —
     // NÃO é gravado no localStorage, para não sobrescrever o chute do usuário.
     const liveScore = live.getLive(m.key);
+    // Entrada da ESPN em qualquer estado (inclui futuros) → habilita "Detalhes".
+    const metaEntry = live.getEntry(m.key);
 
     return {
       displayHome,
@@ -537,6 +542,7 @@ export function GamesView() {
       onChangeAway: (v: number) => setScore(m.key, saved?.home ?? 0, v),
       onSaveScore: (home: number, away: number) => setScore(m.key, home, away),
       live: liveScore,
+      meta: metaEntry,
     };
   }
 

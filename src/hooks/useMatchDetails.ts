@@ -44,9 +44,43 @@ export interface TeamLineup {
   bench: LineupPlayer[];
 }
 
+/** Um lance da narração minuto a minuto. */
+export interface CommentaryItem {
+  clock: string; // "23'", "" (pré-jogo)
+  text: string;
+}
+
+/** Um jogo recente (últimos 5 / confronto direto), na ótica de um time. */
+export interface PastGame {
+  date: string;                 // ISO
+  opponent: string;
+  opponentLogo: string | null;
+  atVs: string;                 // "vs" | "@"
+  score: string;                // placar na ótica do time, ex. "2-1"
+  result: 'W' | 'D' | 'L' | null;
+}
+
+/** Notícia/artigo relacionado. */
+export interface NewsItem {
+  headline: string;
+  href: string;
+}
+
+/** Vídeo de destaque. */
+export interface VideoItem {
+  headline: string;
+  href: string;
+  thumbnail: string | null;
+}
+
 export interface MatchDetails {
   timeline: TimelineEvent[];
   lineups: { home: TeamLineup | null; away: TeamLineup | null };
+  commentary: CommentaryItem[];
+  lastFive: { home: PastGame[]; away: PastGame[] };
+  headToHead: PastGame[];
+  news: NewsItem[];
+  videos: VideoItem[];
   loading: boolean;
   error: boolean;
 }
@@ -126,6 +160,73 @@ function parseLineups(
   }
   return result;
 }
+
+/** Narração minuto a minuto, mais recente primeiro (máx. 12 lances). */
+function parseCommentary(json: any): CommentaryItem[] {
+  const raw: any[] = Array.isArray(json?.commentary) ? json.commentary : [];
+  return raw
+    .filter((c) => c?.text)
+    .map((c) => ({ clock: c?.time?.displayValue ?? '', text: String(c.text) }))
+    .reverse()
+    .slice(0, 12);
+}
+
+/** Mapeia um jogo recente para a ótica do `teamId` informado. */
+function mapPastGame(ev: any, teamId: string | null): PastGame {
+  const teamIsHome = teamId != null && String(ev?.homeTeamId) === teamId;
+  const gf = parseInt(teamIsHome ? ev?.homeTeamScore : ev?.awayTeamScore, 10);
+  const ga = parseInt(teamIsHome ? ev?.awayTeamScore : ev?.homeTeamScore, 10);
+  const valid = Number.isFinite(gf) && Number.isFinite(ga);
+  return {
+    date: ev?.gameDate ?? '',
+    opponent: ev?.opponent?.displayName ?? '—',
+    opponentLogo: ev?.opponent?.logo ?? null,
+    atVs: ev?.atVs ?? 'vs',
+    score: valid ? `${gf}-${ga}` : (ev?.score ?? ''),
+    result: !valid ? null : gf > ga ? 'W' : gf < ga ? 'L' : 'D',
+  };
+}
+
+/** Bloco {team, events}[] → jogos por lado (orientado pelo team.id). */
+function parseLastFive(json: any, homeId: string | null, awayId: string | null): { home: PastGame[]; away: PastGame[] } {
+  const blocks: any[] = Array.isArray(json?.lastFiveGames) ? json.lastFiveGames : [];
+  const out: { home: PastGame[]; away: PastGame[] } = { home: [], away: [] };
+  for (const b of blocks) {
+    const teamId = b?.team?.id != null ? String(b.team.id) : null;
+    const games = (Array.isArray(b?.events) ? b.events : []).map((ev: any) => mapPastGame(ev, teamId));
+    if (teamId === homeId) out.home = games;
+    else if (teamId === awayId) out.away = games;
+  }
+  return out;
+}
+
+/** Confrontos diretos (na ótica do mandante). */
+function parseHeadToHead(json: any, homeId: string | null): PastGame[] {
+  const blocks: any[] = Array.isArray(json?.headToHeadGames) ? json.headToHeadGames : [];
+  const block = blocks.find((b) => String(b?.team?.id) === homeId) ?? blocks[0];
+  const teamId = block?.team?.id != null ? String(block.team.id) : homeId;
+  return (Array.isArray(block?.events) ? block.events : []).map((ev: any) => mapPastGame(ev, teamId));
+}
+
+function parseNews(json: any): NewsItem[] {
+  const arts: any[] = Array.isArray(json?.news?.articles) ? json.news.articles : [];
+  return arts
+    .map((a) => ({ headline: a?.headline ?? '', href: a?.links?.web?.href ?? '' }))
+    .filter((a) => a.headline && a.href)
+    .slice(0, 5);
+}
+
+function parseVideos(json: any): VideoItem[] {
+  const vids: any[] = Array.isArray(json?.videos) ? json.videos : [];
+  return vids
+    .map((v) => ({
+      headline: v?.headline ?? '',
+      href: v?.links?.source?.href ?? v?.links?.web?.href ?? '',
+      thumbnail: v?.thumbnail ?? null,
+    }))
+    .filter((v) => v.headline && v.href)
+    .slice(0, 4);
+}
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 export function useMatchDetails(
@@ -137,6 +238,11 @@ export function useMatchDetails(
   const { enabled, live } = opts;
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
   const [lineups, setLineups] = useState<MatchDetails['lineups']>({ home: null, away: null });
+  const [commentary, setCommentary] = useState<CommentaryItem[]>([]);
+  const [lastFive, setLastFive] = useState<MatchDetails['lastFive']>({ home: [], away: [] });
+  const [headToHead, setHeadToHead] = useState<PastGame[]>([]);
+  const [news, setNews] = useState<NewsItem[]>([]);
+  const [videos, setVideos] = useState<VideoItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
@@ -160,6 +266,11 @@ export function useMatchDetails(
         if (!cancelled) {
           setTimeline(parseSummary(json, homeId, awayId));
           setLineups(parseLineups(json, homeId, awayId));
+          setCommentary(parseCommentary(json));
+          setLastFive(parseLastFive(json, homeId, awayId));
+          setHeadToHead(parseHeadToHead(json, homeId));
+          setNews(parseNews(json));
+          setVideos(parseVideos(json));
           setError(false);
         }
       } catch (err) {
@@ -180,5 +291,5 @@ export function useMatchDetails(
     };
   }, [eventId, homeId, awayId, enabled, live]);
 
-  return { timeline, lineups, loading, error };
+  return { timeline, lineups, commentary, lastFive, headToHead, news, videos, loading, error };
 }
