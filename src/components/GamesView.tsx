@@ -347,7 +347,9 @@ function MatchCard({ match, displayHome, displayAway, onChangeHome, onChangeAway
       )}
 
       {/* Painel de detalhes ESPN */}
-      {canShowDetails && showDetails && live && <MatchDetailsPanel live={live} />}
+      {canShowDetails && showDetails && live && (
+        <MatchDetailsPanel live={live} homeName={match.homeTeam} awayName={match.awayTeam} />
+      )}
 
       {/* Painel de edição inline — apenas jogos encerrados em modo edição */}
       {isPast && editing && (

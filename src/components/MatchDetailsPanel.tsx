@@ -12,9 +12,9 @@
  * acontece sob demanda — nunca em massa.
  */
 
-import { ExternalLink, MapPin, Tv } from 'lucide-react';
+import { ArrowDown, ArrowUp, ExternalLink, MapPin, Tv } from 'lucide-react';
 import type { LiveScore, TeamStats } from '../hooks/useLiveScores';
-import { useMatchDetails, type TimelineEvent } from '../hooks/useMatchDetails';
+import { useMatchDetails, type TeamLineup, type TimelineEvent } from '../hooks/useMatchDetails';
 
 // ─── Forma recente: "DWDDW" → bolinhas coloridas ─────────────────────────────
 
@@ -113,6 +113,68 @@ function Timeline({ events, loading }: { events: TimelineEvent[]; loading: boole
   );
 }
 
+// ─── Escalações ───────────────────────────────────────────────────────────────
+
+function PlayerRow({ jersey, name, position, marker }: { jersey: string; name: string; position: string | null; marker: 'in' | 'out' | null }) {
+  return (
+    <li className="flex items-center gap-1 text-[10px] text-gray-700 dark:text-gray-200">
+      <span className="w-4 shrink-0 text-right font-bold tabular-nums text-gray-400 dark:text-gray-500">{jersey}</span>
+      <span className="truncate" title={name}>{name}</span>
+      {position && <span className="ml-auto shrink-0 text-[8px] font-semibold uppercase text-gray-400 dark:text-gray-500">{position}</span>}
+      {marker === 'out' && <ArrowDown size={9} className="shrink-0 text-red-500" />}
+      {marker === 'in' && <ArrowUp size={9} className="shrink-0 text-green-500" />}
+    </li>
+  );
+}
+
+function LineupColumn({ name, lineup }: { name: string; lineup: TeamLineup | null }) {
+  if (!lineup || lineup.starters.length === 0) {
+    return (
+      <div className="min-w-0">
+        <p className="truncate text-[10px] font-bold text-gray-700 dark:text-gray-200">{name}</p>
+        <p className="text-[9px] text-gray-400 dark:text-gray-500">Escalação indisponível</p>
+      </div>
+    );
+  }
+  return (
+    <div className="min-w-0">
+      <div className="mb-1 flex items-center justify-between gap-1">
+        <p className="truncate text-[10px] font-bold text-gray-700 dark:text-gray-200">{name}</p>
+        {lineup.formation && (
+          <span className="shrink-0 rounded bg-gray-200 px-1 text-[8px] font-bold tabular-nums text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+            {lineup.formation}
+          </span>
+        )}
+      </div>
+      <ul className="space-y-0.5">
+        {lineup.starters.map((p, i) => (
+          <PlayerRow key={i} jersey={p.jersey} name={p.name} position={p.position} marker={p.subbedOut ? 'out' : null} />
+        ))}
+      </ul>
+      {lineup.bench.some((p) => p.subbedIn) && (
+        <>
+          <p className="mt-1.5 mb-0.5 text-[8px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Entraram</p>
+          <ul className="space-y-0.5">
+            {lineup.bench.filter((p) => p.subbedIn).map((p, i) => (
+              <PlayerRow key={i} jersey={p.jersey} name={p.name} position={p.position} marker="in" />
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
+function Lineups({ home, away, homeName, awayName }: { home: TeamLineup | null; away: TeamLineup | null; homeName: string; awayName: string }) {
+  if (!home && !away) return null;
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <LineupColumn name={homeName} lineup={home} />
+      <LineupColumn name={awayName} lineup={away} />
+    </div>
+  );
+}
+
 // ─── Painel ──────────────────────────────────────────────────────────────────
 
 function Divider({ label }: { label: string }) {
@@ -124,7 +186,7 @@ function Divider({ label }: { label: string }) {
   );
 }
 
-export function MatchDetailsPanel({ live }: { live: LiveScore }) {
+export function MatchDetailsPanel({ live, homeName, awayName }: { live: LiveScore; homeName: string; awayName: string }) {
   const details = useMatchDetails(
     live.espnEventId,
     live.homeBrand?.id ?? null,
@@ -161,6 +223,19 @@ export function MatchDetailsPanel({ live }: { live: LiveScore }) {
         <>
           <Divider label="Estatísticas" />
           <StatsBlock home={live.stats.home} away={live.stats.away} />
+        </>
+      )}
+
+      {/* Escalações */}
+      {(details.lineups.home || details.lineups.away) && (
+        <>
+          <Divider label="Escalações" />
+          <Lineups
+            home={details.lineups.home}
+            away={details.lineups.away}
+            homeName={homeName}
+            awayName={awayName}
+          />
         </>
       )}
 
