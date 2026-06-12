@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { LiveScoresState } from './useLiveScores';
+import { playGoalSound, unlockGoalSound } from '../utils/goalSound';
 
 const STORAGE_KEY = 'copa2026:goal-alerts:v1';
 
@@ -63,9 +64,10 @@ export function useGoalAlerts(live: LiveScoresState, names: NameMap): GoalAlerts
       if (!s || (!s.isLive && !s.isFinished)) continue;
       const total = s.home + s.away;
       const before = prev.get(id);
-      // Só notifica quando: já havia baseline, o jogo está ao vivo e o total subiu.
+      // Só alerta quando: já havia baseline, o jogo está ao vivo e o total subiu.
       if (active && before !== undefined && s.isLive && total > before) {
         const t = map[id];
+        playGoalSound(); // som mesmo se a notificação for bloqueada
         try {
           new Notification('⚽ GOL!', {
             body: `${t.home} ${s.home} × ${s.away} ${t.away}${s.clock ? ` · ${s.clock}` : ''}`,
@@ -91,6 +93,8 @@ export function useGoalAlerts(live: LiveScoresState, names: NameMap): GoalAlerts
       }
       return;
     }
+    // O clique é o gesto que destrava o áudio (exigência dos navegadores).
+    unlockGoalSound();
     const enable = () => {
       setEnabled(true);
       try {
@@ -98,6 +102,7 @@ export function useGoalAlerts(live: LiveScoresState, names: NameMap): GoalAlerts
       } catch {
         /* ignora */
       }
+      playGoalSound(); // confirmação imediata: o usuário ouve que está ligado
     };
     if (permission === 'granted') {
       enable();
