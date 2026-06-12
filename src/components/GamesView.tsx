@@ -367,6 +367,9 @@ function PhaseSection({ label, phase, fixtures, cardProps }: { label: string; ph
 
 // ─── GamesView — View principal ──────────────────────────────────────────────
 
+const PAST_DATES_INITIAL = 3;
+const PAST_DATES_STEP = 3;
+
 export function GamesView() {
   const { getScore, setScore } = useGroupScores();
   const phases = getFixturesByPhase();
@@ -378,6 +381,10 @@ export function GamesView() {
   const upcomingGroups = groupByShortDate(upcomingGames);
   const pastGroups = groupByShortDate([...pastGames].reverse());
   const hasAnyContent = ALL_MATCHES.length > 0;
+
+  const [visiblePastDates, setVisiblePastDates] = useState(PAST_DATES_INITIAL);
+  const visiblePastGroups = pastGroups.slice(0, visiblePastDates);
+  const hasMorePast = visiblePastDates < pastGroups.length;
 
   /**
    * Monta as props de cada card.
@@ -434,10 +441,23 @@ export function GamesView() {
             <span className="text-xs text-gray-500 dark:text-gray-400">({pastGames.length})</span>
           </div>
           <div className="space-y-8">
-            {pastGroups.map(({ date, games }) => (
+            {visiblePastGroups.map(({ date, games }) => (
               <DateGroup key={date} date={date} games={games} cardProps={cardProps} />
             ))}
           </div>
+          {hasMorePast && (
+            <div className="mt-6 flex flex-col items-center gap-1">
+              <button
+                onClick={() => setVisiblePastDates((n) => n + PAST_DATES_STEP)}
+                className="px-5 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                Ver mais resultados
+              </button>
+              <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                {visiblePastDates} de {pastGroups.length} datas
+              </span>
+            </div>
+          )}
         </section>
       )}
 
