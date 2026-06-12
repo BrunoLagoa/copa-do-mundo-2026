@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle, Clock, MapPin, Pencil, Trophy, X } from 'lucide-react';
+import { CheckCircle, Clock, MapPin, Pencil, Radio, Trophy, X } from 'lucide-react';
 import {
   buildMatchList,
   getFixturesByPhase,
   type MatchEntry,
 } from '../utils/matchDate';
 import { useGroupScores } from '../hooks/useGroupScores';
+import { useLiveScores, type LiveScore } from '../hooks/useLiveScores';
 import type { Fixture, MatchPhase } from '../types';
 
 const ALL_MATCHES = buildMatchList();
@@ -67,10 +68,34 @@ interface ScoreCenterProps {
   /** Apenas para jogos de hoje — inputs editáveis contínuos */
   onChangeHome: (v: number) => void;
   onChangeAway: (v: number) => void;
+  /** Placar ao vivo (proxy). Quando presente, é autoritativo e read-only. */
+  live?: LiveScore | null;
 }
 
-function ScoreCenter({ match, displayHome, displayAway, onChangeHome, onChangeAway }: ScoreCenterProps) {
+function ScoreCenter({ match, displayHome, displayAway, onChangeHome, onChangeAway, live }: ScoreCenterProps) {
   const { status, time, date } = match;
+
+  // Placar ao vivo (real) — autoritativo: sobrepõe inputs/placar manual.
+  if (live) {
+    return (
+      <div className="flex flex-col items-center gap-0.5 px-2 shrink-0">
+        <div className="flex items-center gap-1.5">
+          <span className="text-xl font-bold tabular-nums text-gray-900 dark:text-gray-100">{live.home}</span>
+          <span className="text-sm text-gray-400 dark:text-gray-600 font-bold">×</span>
+          <span className="text-xl font-bold tabular-nums text-gray-900 dark:text-gray-100">{live.away}</span>
+        </div>
+        {live.isFinished ? (
+          <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">Encerrado</span>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-[9px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">
+            <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+            Ao vivo{live.minute != null ? ` · ${live.minute}'` : ''}
+          </span>
+        )}
+        <span className="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">{date}</span>
+      </div>
+    );
+  }
 
   // Jogos passados — exibe placar efetivo (nunca inputs contínuos)
   if (status === 'past') {
@@ -216,11 +241,13 @@ interface MatchCardProps {
   onChangeHome: (v: number) => void;
   onChangeAway: (v: number) => void;
   onSaveScore: (home: number, away: number) => void;
+  live?: LiveScore | null;
 }
 
-function MatchCard({ match, displayHome, displayAway, onChangeHome, onChangeAway, onSaveScore }: MatchCardProps) {
+function MatchCard({ match, displayHome, displayAway, onChangeHome, onChangeAway, onSaveScore, live }: MatchCardProps) {
   const [editing, setEditing] = useState(false);
   const isPast = match.status === 'past';
+  const isLiveNow = Boolean(live?.isLive);
 
   function handleSave(home: number, away: number) {
     onSaveScore(home, away);
@@ -229,7 +256,7 @@ function MatchCard({ match, displayHome, displayAway, onChangeHome, onChangeAway
 
   return (
     <div
-      className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden transition-shadow ${match.isPlaceholder ? 'opacity-80' : ''} ${isPast && !editing ? 'opacity-75 hover:opacity-100' : ''} ${editing ? 'ring-2 ring-blue-400 dark:ring-blue-500 shadow-md' : 'hover:shadow-md'}`}
+      className={`bg-white dark:bg-gray-800 rounded-xl border overflow-hidden transition-shadow ${isLiveNow ? 'border-red-300 dark:border-red-600 ring-1 ring-red-200 dark:ring-red-900/60' : 'border-gray-200 dark:border-gray-700'} ${match.isPlaceholder ? 'opacity-80' : ''} ${isPast && !editing && !live ? 'opacity-75 hover:opacity-100' : ''} ${editing ? 'ring-2 ring-blue-400 dark:ring-blue-500 shadow-md' : 'hover:shadow-md'}`}
     >
       {/* Cabeçalho */}
       <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-700 border-b border-gray-100 dark:border-gray-600">
@@ -243,7 +270,7 @@ function MatchCard({ match, displayHome, displayAway, onChangeHome, onChangeAway
         </div>
         <div className="flex items-center gap-2">
           {/* Botão editar — apenas em jogos encerrados, fora do modo de edição */}
-          {isPast && !editing && (
+          {isPast && !editing && !live && (
             <button
               onClick={() => setEditing(true)}
               className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
@@ -270,6 +297,7 @@ function MatchCard({ match, displayHome, displayAway, onChangeHome, onChangeAway
           displayAway={displayAway}
           onChangeHome={onChangeHome}
           onChangeAway={onChangeAway}
+          live={live}
         />
         <TeamCell slug={match.awaySlug} name={match.awayTeam} flag={match.awayFlag} side="away" />
       </div>
@@ -314,6 +342,7 @@ type CardPropsGetter = (m: MatchEntry) => {
   onChangeHome: (v: number) => void;
   onChangeAway: (v: number) => void;
   onSaveScore: (home: number, away: number) => void;
+  live: LiveScore | null;
 };
 
 // ─── DateGroup ────────────────────────────────────────────────────────────────
@@ -370,8 +399,57 @@ function PhaseSection({ label, phase, fixtures, cardProps }: { label: string; ph
 const PAST_DATES_INITIAL = 3;
 const PAST_DATES_STEP = 3;
 
+// ─── Barra de status ao vivo ─────────────────────────────────────────────────
+
+function timeAgo(date: Date): string {
+  const s = Math.max(0, Math.round((Date.now() - date.getTime()) / 1000));
+  if (s < 60) return `há ${s}s`;
+  const m = Math.round(s / 60);
+  if (m < 60) return `há ${m}min`;
+  return `há ${Math.round(m / 60)}h`;
+}
+
+function LiveStatusBar({ state }: { state: ReturnType<typeof useLiveScores> }) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 10_000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (!state.enabled) return null; // proxy não configurado → barra some
+
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2">
+      <div className="flex items-center gap-2 min-w-0">
+        {state.error ? (
+          <>
+            <span className="h-2 w-2 rounded-full bg-gray-400 shrink-0" />
+            <span className="text-xs text-gray-500 dark:text-gray-400 truncate">
+              Placares ao vivo indisponíveis no momento
+            </span>
+          </>
+        ) : (
+          <>
+            <span className={`inline-flex h-2 w-2 rounded-full shrink-0 ${state.liveCount > 0 ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`} />
+            <span className="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate">
+              {state.liveCount > 0 ? `${state.liveCount} jogo${state.liveCount > 1 ? 's' : ''} ao vivo agora` : 'Placares ao vivo ligados'}
+            </span>
+          </>
+        )}
+      </div>
+      <div className="flex items-center gap-1.5 text-[11px] text-gray-400 dark:text-gray-500 shrink-0">
+        <Radio size={11} className={state.loading ? 'animate-pulse text-green-500' : ''} />
+        <span className="tabular-nums">
+          {state.lastUpdated ? `atualizado ${timeAgo(state.lastUpdated)}` : 'atualizando…'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function GamesView() {
   const { getScore, setScore } = useGroupScores();
+  const live = useLiveScores();
   const phases = getFixturesByPhase();
   const koPhases = phases.filter((p) => KO_PHASES.includes(p.phase));
 
@@ -405,17 +483,25 @@ export function GamesView() {
       displayAway = m.awayScore;
     }
 
+    // Placar ao vivo (real, vindo do proxy) é injetado apenas no display —
+    // NÃO é gravado no localStorage, para não sobrescrever o chute do usuário.
+    const liveScore = live.getLive(m.key);
+
     return {
       displayHome,
       displayAway,
       onChangeHome: (v: number) => setScore(m.key, v, saved?.away ?? 0),
       onChangeAway: (v: number) => setScore(m.key, saved?.home ?? 0, v),
       onSaveScore: (home: number, away: number) => setScore(m.key, home, away),
+      live: liveScore,
     };
   }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-10">
+      {/* Barra de status ao vivo — só aparece se o proxy estiver configurado */}
+      <LiveStatusBar state={live} />
+
       {/* Jogos de hoje */}
       {todayGames.length > 0 && (
         <section>

@@ -1,0 +1,11 @@
+name = "copa2026-live-scores"
+main = "live-scores.js"
+compatibility_date = "2026-01-01"
+
+# Origem do app para liberar CORS. Em produção, troque "*" pela URL real,
+# ex.: "https://seu-usuario.github.io". Pode deixar "*" em testes.
+[vars]
+ALLOWED_ORIGIN = "*"
+
+# A chave da football-data.org NÃO vai aqui. Ela é um secret:
+#   cd worker && npx wrangler secret put FOOTBALL_DATA_TOKEN
