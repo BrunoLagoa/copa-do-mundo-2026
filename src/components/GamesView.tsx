@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle, Clock, MapPin, Trophy } from 'lucide-react';
+import { CheckCircle, Clock, MapPin, Pencil, Trophy, X } from 'lucide-react';
 import {
   buildMatchList,
   getFixturesByPhase,
@@ -7,16 +8,6 @@ import {
 } from '../utils/matchDate';
 import { useGroupScores } from '../hooks/useGroupScores';
 import type { Fixture, MatchPhase } from '../types';
-
-function PhaseBadge({ phase }: { phase: MatchPhase }) {
-  return (
-    <span
-      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${PHASE_BADGE[phase].classes}`}
-    >
-      {PHASE_BADGE[phase].label}
-    </span>
-  );
-}
 
 const ALL_MATCHES = buildMatchList();
 
@@ -32,146 +23,24 @@ const PHASE_BADGE: Record<MatchPhase, { label: string; classes: string }> = {
 
 const KO_PHASES: MatchPhase[] = ['round-of-32', 'round-of-16', 'quarter', 'semi', 'third', 'final'];
 
-// ─── Placar central do card ─────────────────────────────────────────────────
+// ─── PhaseBadge ─────────────────────────────────────────────────────────────
 
-interface ScoreCenterProps {
-  match: MatchEntry;
-  editHome: number | null;
-  editAway: number | null;
-  onChangeHome: (v: number) => void;
-  onChangeAway: (v: number) => void;
-}
-
-function ScoreCenter({ match, editHome, editAway, onChangeHome, onChangeAway }: ScoreCenterProps) {
-  const { status, homeScore, awayScore, time, date } = match;
-
-  // Jogo passado COM placar fixo cadastrado
-  if (status === 'past' && homeScore !== undefined && awayScore !== undefined) {
-    return (
-      <div className="flex flex-col items-center gap-0.5 px-2 shrink-0">
-        <div className="flex items-center gap-1.5">
-          <span className="text-xl font-bold tabular-nums text-gray-500 dark:text-gray-400">{homeScore}</span>
-          <span className="text-sm text-gray-400 dark:text-gray-600 font-bold">×</span>
-          <span className="text-xl font-bold tabular-nums text-gray-500 dark:text-gray-400">{awayScore}</span>
-        </div>
-        <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">Encerrado</span>
-        <span className="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">{date}</span>
-      </div>
-    );
-  }
-
-  // Jogo passado SEM placar cadastrado ainda (histórico sem score)
-  if (status === 'past') {
-    return (
-      <div className="flex flex-col items-center gap-0.5 px-2 shrink-0">
-        <span className="text-base font-bold text-gray-400 dark:text-gray-600">— × —</span>
-        <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">Encerrado</span>
-        <span className="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">{date}</span>
-      </div>
-    );
-  }
-
-  // Jogo de hoje — inputs editáveis
-  if (status === 'today') {
-    return (
-      <div className="flex flex-col items-center gap-1 px-1 shrink-0">
-        <div className="flex items-center gap-1">
-          <input
-            type="number"
-            min={0}
-            max={99}
-            value={editHome ?? ''}
-            onChange={(e) => onChangeHome(Math.max(0, parseInt(e.target.value, 10) || 0))}
-            className="w-9 text-center text-base font-bold tabular-nums rounded border border-green-400 dark:border-green-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 py-0.5"
-            aria-label="Gols mandante"
-          />
-          <span className="text-sm text-gray-400 dark:text-gray-500 font-bold">×</span>
-          <input
-            type="number"
-            min={0}
-            max={99}
-            value={editAway ?? ''}
-            onChange={(e) => onChangeAway(Math.max(0, parseInt(e.target.value, 10) || 0))}
-            className="w-9 text-center text-base font-bold tabular-nums rounded border border-green-400 dark:border-green-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 py-0.5"
-            aria-label="Gols visitante"
-          />
-        </div>
-        <span className="text-[9px] text-green-600 dark:text-green-400 uppercase tracking-wider font-semibold">Hoje · {time} BRT</span>
-        <span className="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">{date}</span>
-      </div>
-    );
-  }
-
-  // Jogo futuro — horário + placar bloqueado
+function PhaseBadge({ phase }: { phase: MatchPhase }) {
   return (
-    <div className="flex flex-col items-center gap-0.5 px-2 shrink-0">
-      <span className="text-lg font-bold tabular-nums text-gray-900 dark:text-gray-100">{time}</span>
-      <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">BRT</span>
-      <span className="text-[10px] font-bold text-gray-300 dark:text-gray-600 mt-0.5">— × —</span>
-      <span className="text-[9px] text-gray-400 dark:text-gray-500">{date}</span>
-    </div>
+    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${PHASE_BADGE[phase].classes}`}>
+      {PHASE_BADGE[phase].label}
+    </span>
   );
 }
 
-// ─── Card de jogo ───────────────────────────────────────────────────────────
-
-interface MatchCardProps {
-  match: MatchEntry;
-  editHome: number | null;
-  editAway: number | null;
-  onChangeHome: (v: number) => void;
-  onChangeAway: (v: number) => void;
-}
-
-function MatchCard({ match, editHome, editAway, onChangeHome, onChangeAway }: MatchCardProps) {
-  const isPast = match.status === 'past';
-  return (
-    <div
-      className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow ${match.isPlaceholder ? 'opacity-80' : ''} ${isPast ? 'opacity-75' : ''}`}
-    >
-      <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-700 border-b border-gray-100 dark:border-gray-600">
-        <div className="flex items-center gap-2">
-          <PhaseBadge phase={match.phase} />
-          {match.phase === 'group' && match.group && (
-            <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">
-              Grupo {match.group}
-            </span>
-          )}
-        </div>
-        <span className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400">
-          <MapPin size={10} />
-          {match.city}
-        </span>
-      </div>
-
-      <div className="flex items-center justify-between gap-2 px-4 py-3">
-        <TeamCell slug={match.homeSlug} name={match.homeTeam} flag={match.homeFlag} side="home" />
-        <ScoreCenter
-          match={match}
-          editHome={editHome}
-          editAway={editAway}
-          onChangeHome={onChangeHome}
-          onChangeAway={onChangeAway}
-        />
-        <TeamCell slug={match.awaySlug} name={match.awayTeam} flag={match.awayFlag} side="away" />
-      </div>
-
-      <div className="px-4 py-1.5 border-t border-gray-100 dark:border-gray-700 flex items-center justify-center gap-1.5">
-        <Clock size={10} className="text-gray-400" />
-        <p className="text-[10px] text-center text-gray-500 dark:text-gray-400">{match.venue}</p>
-      </div>
-    </div>
-  );
-}
+// ─── TeamCell ────────────────────────────────────────────────────────────────
 
 function TeamCell({ slug, name, flag, side }: { slug: string; name: string; flag: string; side: 'home' | 'away' }) {
   if (slug === 'tbd') {
     return (
       <div className={`flex flex-col items-center gap-1 min-w-0 flex-1 ${side === 'home' ? 'text-right' : 'text-left'}`}>
         <span className="text-2xl leading-none opacity-60">{flag}</span>
-        <span className="text-[10px] text-gray-400 dark:text-gray-500 italic leading-tight text-center">
-          {name}
-        </span>
+        <span className="text-[10px] text-gray-400 dark:text-gray-500 italic leading-tight text-center">{name}</span>
       </div>
     );
   }
@@ -188,7 +57,244 @@ function TeamCell({ slug, name, flag, side }: { slug: string; name: string; flag
   );
 }
 
-// ─── Agrupa partidas por data (string "DD MMM") ─────────────────────────────
+// ─── ScoreCenter ─────────────────────────────────────────────────────────────
+
+interface ScoreCenterProps {
+  match: MatchEntry;
+  /** Placar efetivo a exibir (localStorage tem prioridade sobre matches.ts) */
+  displayHome: number | null;
+  displayAway: number | null;
+  /** Apenas para jogos de hoje — inputs editáveis contínuos */
+  onChangeHome: (v: number) => void;
+  onChangeAway: (v: number) => void;
+}
+
+function ScoreCenter({ match, displayHome, displayAway, onChangeHome, onChangeAway }: ScoreCenterProps) {
+  const { status, time, date } = match;
+
+  // Jogos passados — exibe placar efetivo (nunca inputs contínuos)
+  if (status === 'past') {
+    const hasScore = displayHome !== null && displayAway !== null;
+    return (
+      <div className="flex flex-col items-center gap-0.5 px-2 shrink-0">
+        {hasScore ? (
+          <div className="flex items-center gap-1.5">
+            <span className="text-xl font-bold tabular-nums text-gray-500 dark:text-gray-400">{displayHome}</span>
+            <span className="text-sm text-gray-400 dark:text-gray-600 font-bold">×</span>
+            <span className="text-xl font-bold tabular-nums text-gray-500 dark:text-gray-400">{displayAway}</span>
+          </div>
+        ) : (
+          <span className="text-base font-bold text-gray-400 dark:text-gray-600">— × —</span>
+        )}
+        <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">Encerrado</span>
+        <span className="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">{date}</span>
+      </div>
+    );
+  }
+
+  // Jogo de hoje — inputs editáveis contínuos
+  if (status === 'today') {
+    return (
+      <div className="flex flex-col items-center gap-1 px-1 shrink-0">
+        <div className="flex items-center gap-1">
+          <input
+            type="number"
+            min={0}
+            max={99}
+            value={displayHome ?? ''}
+            onChange={(e) => onChangeHome(Math.max(0, parseInt(e.target.value, 10) || 0))}
+            className="w-9 text-center text-base font-bold tabular-nums rounded border border-green-400 dark:border-green-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 py-0.5"
+            aria-label="Gols mandante"
+          />
+          <span className="text-sm text-gray-400 dark:text-gray-500 font-bold">×</span>
+          <input
+            type="number"
+            min={0}
+            max={99}
+            value={displayAway ?? ''}
+            onChange={(e) => onChangeAway(Math.max(0, parseInt(e.target.value, 10) || 0))}
+            className="w-9 text-center text-base font-bold tabular-nums rounded border border-green-400 dark:border-green-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 py-0.5"
+            aria-label="Gols visitante"
+          />
+        </div>
+        <span className="text-[9px] text-green-600 dark:text-green-400 uppercase tracking-wider font-semibold">Hoje · {time} BRT</span>
+        <span className="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">{date}</span>
+      </div>
+    );
+  }
+
+  // Jogo futuro
+  return (
+    <div className="flex flex-col items-center gap-0.5 px-2 shrink-0">
+      <span className="text-lg font-bold tabular-nums text-gray-900 dark:text-gray-100">{time}</span>
+      <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">BRT</span>
+      <span className="text-[10px] font-bold text-gray-300 dark:text-gray-600 mt-0.5">— × —</span>
+      <span className="text-[9px] text-gray-400 dark:text-gray-500">{date}</span>
+    </div>
+  );
+}
+
+// ─── ScoreEditInline — edição inline para jogos encerrados ──────────────────
+
+interface ScoreEditInlineProps {
+  match: MatchEntry;
+  initialHome: number;
+  initialAway: number;
+  onSave: (home: number, away: number) => void;
+  onCancel: () => void;
+}
+
+function ScoreEditInline({ match, initialHome, initialAway, onSave, onCancel }: ScoreEditInlineProps) {
+  const [home, setHome] = useState(initialHome);
+  const [away, setAway] = useState(initialAway);
+
+  return (
+    <div className="px-4 pb-3 pt-2 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
+      <p className="text-[10px] text-gray-500 dark:text-gray-400 text-center mb-2 font-medium uppercase tracking-wider">
+        Corrigir placar
+      </p>
+      <div className="flex items-center justify-center gap-2 mb-3">
+        {/* Time mandante */}
+        <div className="flex flex-col items-center gap-1 min-w-0 flex-1">
+          <span className="text-base leading-none">{match.homeFlag}</span>
+          <span className="text-[9px] text-gray-500 dark:text-gray-400 truncate max-w-full text-center">{match.homeTeam}</span>
+        </div>
+        {/* Inputs */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <input
+            type="number"
+            min={0}
+            max={99}
+            value={home}
+            onChange={(e) => setHome(Math.max(0, parseInt(e.target.value, 10) || 0))}
+            className="w-10 text-center text-lg font-bold tabular-nums rounded border border-blue-400 dark:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 py-0.5"
+            aria-label={`Gols ${match.homeTeam}`}
+            autoFocus
+          />
+          <span className="text-sm text-gray-400 dark:text-gray-500 font-bold">×</span>
+          <input
+            type="number"
+            min={0}
+            max={99}
+            value={away}
+            onChange={(e) => setAway(Math.max(0, parseInt(e.target.value, 10) || 0))}
+            className="w-10 text-center text-lg font-bold tabular-nums rounded border border-blue-400 dark:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 py-0.5"
+            aria-label={`Gols ${match.awayTeam}`}
+          />
+        </div>
+        {/* Time visitante */}
+        <div className="flex flex-col items-center gap-1 min-w-0 flex-1">
+          <span className="text-base leading-none">{match.awayFlag}</span>
+          <span className="text-[9px] text-gray-500 dark:text-gray-400 truncate max-w-full text-center">{match.awayTeam}</span>
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <button
+          onClick={() => onSave(home, away)}
+          className="flex-1 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors"
+        >
+          Salvar
+        </button>
+        <button
+          onClick={onCancel}
+          className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 text-xs transition-colors"
+          aria-label="Cancelar edição"
+        >
+          <X size={13} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── MatchCard ───────────────────────────────────────────────────────────────
+
+interface MatchCardProps {
+  match: MatchEntry;
+  displayHome: number | null;
+  displayAway: number | null;
+  onChangeHome: (v: number) => void;
+  onChangeAway: (v: number) => void;
+  onSaveScore: (home: number, away: number) => void;
+}
+
+function MatchCard({ match, displayHome, displayAway, onChangeHome, onChangeAway, onSaveScore }: MatchCardProps) {
+  const [editing, setEditing] = useState(false);
+  const isPast = match.status === 'past';
+
+  function handleSave(home: number, away: number) {
+    onSaveScore(home, away);
+    setEditing(false);
+  }
+
+  return (
+    <div
+      className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden transition-shadow ${match.isPlaceholder ? 'opacity-80' : ''} ${isPast && !editing ? 'opacity-75 hover:opacity-100' : ''} ${editing ? 'ring-2 ring-blue-400 dark:ring-blue-500 shadow-md' : 'hover:shadow-md'}`}
+    >
+      {/* Cabeçalho */}
+      <div className="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-700 border-b border-gray-100 dark:border-gray-600">
+        <div className="flex items-center gap-2">
+          <PhaseBadge phase={match.phase} />
+          {match.phase === 'group' && match.group && (
+            <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">
+              Grupo {match.group}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {/* Botão editar — apenas em jogos encerrados, fora do modo de edição */}
+          {isPast && !editing && (
+            <button
+              onClick={() => setEditing(true)}
+              className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+              aria-label="Editar placar"
+              title="Editar placar"
+            >
+              <Pencil size={10} />
+              <span>editar</span>
+            </button>
+          )}
+          <span className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400">
+            <MapPin size={10} />
+            {match.city}
+          </span>
+        </div>
+      </div>
+
+      {/* Placar central */}
+      <div className="flex items-center justify-between gap-2 px-4 py-3">
+        <TeamCell slug={match.homeSlug} name={match.homeTeam} flag={match.homeFlag} side="home" />
+        <ScoreCenter
+          match={match}
+          displayHome={displayHome}
+          displayAway={displayAway}
+          onChangeHome={onChangeHome}
+          onChangeAway={onChangeAway}
+        />
+        <TeamCell slug={match.awaySlug} name={match.awayTeam} flag={match.awayFlag} side="away" />
+      </div>
+
+      {/* Rodapé */}
+      <div className="px-4 py-1.5 border-t border-gray-100 dark:border-gray-700 flex items-center justify-center gap-1.5">
+        <Clock size={10} className="text-gray-400" />
+        <p className="text-[10px] text-center text-gray-500 dark:text-gray-400">{match.venue}</p>
+      </div>
+
+      {/* Painel de edição inline — apenas jogos encerrados em modo edição */}
+      {isPast && editing && (
+        <ScoreEditInline
+          match={match}
+          initialHome={displayHome ?? 0}
+          initialAway={displayAway ?? 0}
+          onSave={handleSave}
+          onCancel={() => setEditing(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Agrupa partidas por data ─────────────────────────────────────────────────
 
 function groupByShortDate(matches: MatchEntry[]): { date: string; games: MatchEntry[] }[] {
   const map = new Map<string, MatchEntry[]>();
@@ -200,7 +306,66 @@ function groupByShortDate(matches: MatchEntry[]): { date: string; games: MatchEn
   return Array.from(map.entries()).map(([date, games]) => ({ date, games }));
 }
 
-// ─── View principal ─────────────────────────────────────────────────────────
+// ─── Tipos compartilhados ─────────────────────────────────────────────────────
+
+type CardPropsGetter = (m: MatchEntry) => {
+  displayHome: number | null;
+  displayAway: number | null;
+  onChangeHome: (v: number) => void;
+  onChangeAway: (v: number) => void;
+  onSaveScore: (home: number, away: number) => void;
+};
+
+// ─── DateGroup ────────────────────────────────────────────────────────────────
+
+function DateGroup({ date, games, cardProps }: { date: string; games: MatchEntry[]; cardProps: CardPropsGetter }) {
+  return (
+    <section>
+      <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 px-1">
+        {date}
+      </h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {games.map((m) => (
+          <MatchCard key={m.key} match={m} {...cardProps(m)} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ─── PhaseSection ─────────────────────────────────────────────────────────────
+
+function PhaseSection({ label, phase, fixtures, cardProps }: { label: string; phase: MatchPhase; fixtures: Fixture[]; cardProps: CardPropsGetter }) {
+  const matches = buildMatchList().filter((m) => m.phase === phase);
+  const byDate = groupByShortDate(matches);
+  if (byDate.length === 0) return null;
+  return (
+    <section>
+      <div className="flex items-center gap-2 mb-3">
+        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${PHASE_BADGE[phase].classes}`}>
+          {label}
+        </span>
+        <span className="text-xs text-gray-500 dark:text-gray-400">({fixtures.length} jogos)</span>
+      </div>
+      <div className="space-y-6">
+        {byDate.map(({ date, games }) => (
+          <div key={date}>
+            <h4 className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 px-1">
+              {date}
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {games.map((m) => (
+                <MatchCard key={m.key} match={m} {...cardProps(m)} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// ─── GamesView — View principal ──────────────────────────────────────────────
 
 export function GamesView() {
   const { getScore, setScore } = useGroupScores();
@@ -214,13 +379,31 @@ export function GamesView() {
   const pastGroups = groupByShortDate([...pastGames].reverse());
   const hasAnyContent = ALL_MATCHES.length > 0;
 
-  function cardProps(m: MatchEntry) {
+  /**
+   * Monta as props de cada card.
+   * Para jogos passados: localStorage tem PRIORIDADE sobre o placar fixo do matches.ts.
+   * Para jogos de hoje: localStorage é a fonte (inputs contínuos).
+   * Para futuros: sem score.
+   */
+  function cardProps(m: MatchEntry): ReturnType<CardPropsGetter> {
     const saved = getScore(m.key);
+
+    // Placar efetivo: localStorage primeiro, fallback para matches.ts (apenas past)
+    let displayHome: number | null = saved?.home ?? null;
+    let displayAway: number | null = saved?.away ?? null;
+    if (m.status === 'past' && displayHome === null && m.homeScore !== undefined) {
+      displayHome = m.homeScore;
+    }
+    if (m.status === 'past' && displayAway === null && m.awayScore !== undefined) {
+      displayAway = m.awayScore;
+    }
+
     return {
-      editHome: saved?.home ?? null,
-      editAway: saved?.away ?? null,
+      displayHome,
+      displayAway,
       onChangeHome: (v: number) => setScore(m.key, v, saved?.away ?? 0),
       onChangeAway: (v: number) => setScore(m.key, saved?.home ?? 0, v),
+      onSaveScore: (home: number, away: number) => setScore(m.key, home, away),
     };
   }
 
@@ -296,57 +479,5 @@ export function GamesView() {
         </div>
       )}
     </div>
-  );
-}
-
-type CardPropsGetter = (m: MatchEntry) => {
-  editHome: number | null;
-  editAway: number | null;
-  onChangeHome: (v: number) => void;
-  onChangeAway: (v: number) => void;
-};
-
-function DateGroup({ date, games, cardProps }: { date: string; games: MatchEntry[]; cardProps: CardPropsGetter }) {
-  return (
-    <section>
-      <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 px-1">
-        {date}
-      </h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {games.map((m) => (
-          <MatchCard key={m.key} match={m} {...cardProps(m)} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function PhaseSection({ label, phase, fixtures, cardProps }: { label: string; phase: MatchPhase; fixtures: Fixture[]; cardProps: CardPropsGetter }) {
-  const matches = buildMatchList().filter((m) => m.phase === phase);
-  const byDate = groupByShortDate(matches);
-  if (byDate.length === 0) return null;
-  return (
-    <section>
-      <div className="flex items-center gap-2 mb-3">
-        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${PHASE_BADGE[phase].classes}`}>
-          {label}
-        </span>
-        <span className="text-xs text-gray-500 dark:text-gray-400">({fixtures.length} jogos)</span>
-      </div>
-      <div className="space-y-6">
-        {byDate.map(({ date, games }) => (
-          <div key={date}>
-            <h4 className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 px-1">
-              {date}
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {games.map((m) => (
-                <MatchCard key={m.key} match={m} {...cardProps(m)} />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
   );
 }
