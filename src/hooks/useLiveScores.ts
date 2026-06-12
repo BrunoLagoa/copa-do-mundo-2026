@@ -28,6 +28,22 @@ const ESPN_BASE =
 const TOURNAMENT_RANGE = '20260611-20260719';
 const POLL_MS = 60_000;
 
+/** Estatísticas de um time num jogo (vindas da ESPN, podem faltar). */
+export interface TeamStats {
+  possession: number | null;   // % posse de bola
+  shots: number | null;        // finalizações totais
+  shotsOnTarget: number | null;// finalizações no gol
+  corners: number | null;      // escanteios
+  fouls: number | null;        // faltas cometidas
+}
+
+/** Identidade visual de um time vinda da ESPN. */
+export interface TeamBrand {
+  id: string | null;     // id do time na ESPN (orienta a timeline)
+  logo: string | null;   // URL do escudo/bandeira (CDN ESPN)
+  color: string | null;  // cor primária (hex sem #)
+}
+
 /** Placar ao vivo resolvido para um fixture local. */
 export interface LiveScore {
   home: number;
@@ -35,6 +51,22 @@ export interface LiveScore {
   clock: string | null; // ex. "67'", "90'+8'" — só quando ao vivo
   isLive: boolean;       // state === 'in'
   isFinished: boolean;   // state === 'post'
+  /** Rótulo pt-BR do momento do jogo: "1º tempo", "Intervalo", "2º tempo", "Encerrado". */
+  statusDetail: string;
+  period: number;        // 1, 2, 3 (prorrogação)…
+  /** Local do jogo segundo a ESPN (pode complementar o fixture local). */
+  venue: { name: string | null; city: string | null; country: string | null } | null;
+  /** Forma recente — string tipo "DWDDW" (mais recente à direita). */
+  homeForm: string | null;
+  awayForm: string | null;
+  /** Estatísticas ao vivo (já vêm no scoreboard, sem fetch extra). */
+  stats: { home: TeamStats; away: TeamStats } | null;
+  /** Emissoras (grade dos EUA: FOX, Telemundo, Peacock…). */
+  broadcasts: string[];
+  /** ID do evento na ESPN — usado para deep link e para buscar detalhes. */
+  espnEventId: string | null;
+  homeBrand: TeamBrand | null;
+  awayBrand: TeamBrand | null;
 }
 
 export interface LiveScoresState {
@@ -83,6 +115,46 @@ function todayBRTParam(): string {
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+/** Lê uma estatística (por nome) do array competitor.statistics da ESPN. */
+function statValue(stats: any[], name: string): number | null {
+  const s = Array.isArray(stats) ? stats.find((x) => x?.name === name) : null;
+  if (!s) return null;
+  const v = parseFloat(s.displayValue ?? s.value);
+  return Number.isFinite(v) ? v : null;
+}
+
+function teamStats(competitor: any): TeamStats {
+  const st: any[] = competitor?.statistics ?? [];
+  return {
+    possession: statValue(st, 'possessionPct'),
+    shots: statValue(st, 'totalShots'),
+    shotsOnTarget: statValue(st, 'shotsOnTarget'),
+    corners: statValue(st, 'wonCorners'),
+    fouls: statValue(st, 'foulsCommitted'),
+  };
+}
+
+function teamBrand(competitor: any): TeamBrand {
+  return {
+    id: competitor?.team?.id != null ? String(competitor.team.id) : null,
+    logo: competitor?.team?.logo ?? null,
+    color: competitor?.team?.color ?? null,
+  };
+}
+
+/** Monta o rótulo pt-BR do momento do jogo a partir de state/period/status. */
+function statusLabel(state: string, period: number, status: any, clock: string | null): string {
+  if (state === 'post') return 'Encerrado';
+  if (state !== 'in') return '';
+  const name: string = status?.type?.name ?? '';
+  if (name.includes('HALFTIME')) return 'Intervalo';
+  const suffix = clock ? ` · ${clock}` : '';
+  if (period >= 3) return `Prorrogação${suffix}`;
+  if (period === 2) return `2º tempo${suffix}`;
+  return `1º tempo${suffix}`;
+}
+
 /** Converte a resposta da ESPN num mapa fixtureId → LiveScore. */
 function parseEspn(json: any, pairIndex: Map<string, FixtureRef[]>): Record<string, LiveScore> {
   const out: Record<string, LiveScore> = {};
@@ -109,19 +181,40 @@ function parseEspn(json: any, pairIndex: Map<string, FixtureRef[]>): Record<stri
       candidates.find((c) => c.date === day) ?? (candidates.length === 1 ? candidates[0] : null);
     if (!fx) continue;
 
-    // Orienta o placar para o NOSSO mandante/visitante (a ESPN pode inverter).
+    // Orienta tudo para o NOSSO mandante/visitante (a ESPN pode inverter).
     const scoreA = parseInt(a?.score, 10) || 0;
     const scoreB = parseInt(b?.score, 10) || 0;
     const aIsOurHome = ca === fx.homeCode;
+    const ourHome = aIsOurHome ? a : b;
+    const ourAway = aIsOurHome ? b : a;
     const home = aIsOurHome ? scoreA : scoreB;
     const away = aIsOurHome ? scoreB : scoreA;
+
+    const clock = state === 'in' ? (e?.status?.displayClock ?? null) : null;
+    const period: number = Number(e?.status?.period) || 1;
+    const v = comp?.venue;
+    const broadcasts: string[] = Array.isArray(comp?.broadcasts)
+      ? comp.broadcasts.flatMap((b: any) => (Array.isArray(b?.names) ? b.names : [])).filter(Boolean)
+      : [];
 
     out[fx.id] = {
       home,
       away,
-      clock: state === 'in' ? (e?.status?.displayClock ?? null) : null,
+      clock,
       isLive: state === 'in',
       isFinished: state === 'post',
+      statusDetail: statusLabel(state, period, e?.status, clock),
+      period,
+      venue: v
+        ? { name: v?.fullName ?? null, city: v?.address?.city ?? null, country: v?.address?.country ?? null }
+        : null,
+      homeForm: ourHome?.form ?? null,
+      awayForm: ourAway?.form ?? null,
+      stats: { home: teamStats(ourHome), away: teamStats(ourAway) },
+      broadcasts,
+      espnEventId: e?.id != null ? String(e.id) : null,
+      homeBrand: teamBrand(ourHome),
+      awayBrand: teamBrand(ourAway),
     };
   }
   return out;
