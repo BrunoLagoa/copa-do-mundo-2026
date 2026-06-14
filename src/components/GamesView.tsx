@@ -400,7 +400,7 @@ function DateGroup({ date, games, cardProps }: { date: string; games: MatchEntry
       <h3 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 px-1">
         {date}
       </h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-start">
         {games.map((m) => (
           <MatchCard key={m.key} match={m} {...cardProps(m)} />
         ))}
@@ -429,7 +429,7 @@ function PhaseSection({ label, phase, fixtures, cardProps }: { label: string; ph
             <h4 className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 px-1">
               {date}
             </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-start">
               {games.map((m) => (
                 <MatchCard key={m.key} match={m} {...cardProps(m)} />
               ))}
@@ -582,7 +582,7 @@ export function GamesView() {
             <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Jogos de Hoje</h2>
             <span className="text-xs text-gray-500 dark:text-gray-400">({todayGames.length})</span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-start">
             {todayGames.map((m) => (
               <MatchCard key={m.key} match={m} {...cardProps(m)} />
             ))}
