@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import type { Group } from '../types';
 import { getGroupMatches } from '../utils/matchDate';
 import { TeamRow } from './TeamRow';
@@ -15,27 +16,38 @@ function GroupSchedule({ groupId }: { groupId: string }) {
   const matches = getGroupMatches(groupId as 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J' | 'K' | 'L');
   if (matches.length === 0) return null;
   return (
-    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 space-y-1.5">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">
         Jogos
       </p>
-      {matches.map((m) => (
-        <div
-          key={m.id}
-          className="flex items-center gap-2 text-[11px] text-gray-600 dark:text-gray-300"
-          title={`${m.homeTeam} vs ${m.awayTeam} — ${m.time} BRT`}
-        >
-          <span className="font-mono text-gray-400 dark:text-gray-500 tabular-nums shrink-0 w-10">
-            {formatShortDate(m.date)}
-          </span>
-          <span className="font-bold text-green-700 dark:text-green-400 tabular-nums shrink-0 w-9">
-            {m.time}
-          </span>
-          <span className="flex-1 truncate text-right">{m.homeFlag} {m.homeTeam}</span>
-          <span className="text-gray-300 dark:text-gray-600 px-0.5">×</span>
-          <span className="flex-1 truncate">{m.awayFlag} {m.awayTeam}</span>
-        </div>
-      ))}
+      <div
+        className="gap-x-1.5 gap-y-1"
+        style={{ display: 'grid', gridTemplateColumns: 'auto auto minmax(0,1fr) 1rem minmax(0,1fr)', alignItems: 'center' }}
+      >
+        {matches.map((m) => (
+          <Fragment key={m.id}>
+            <span className="font-mono text-[10px] text-gray-400 dark:text-gray-500 tabular-nums">
+              {formatShortDate(m.date)}
+            </span>
+            <span className="font-bold text-[10px] text-green-700 dark:text-green-400 tabular-nums">
+              {m.time}
+            </span>
+            <span
+              className="text-[10px] text-gray-600 dark:text-gray-300 truncate text-right"
+              title={m.homeTeam}
+            >
+              {m.homeFlag} {m.homeTeam}
+            </span>
+            <span className="text-[10px] text-gray-300 dark:text-gray-600 text-center select-none">×</span>
+            <span
+              className="text-[10px] text-gray-600 dark:text-gray-300 truncate"
+              title={m.awayTeam}
+            >
+              {m.awayFlag} {m.awayTeam}
+            </span>
+          </Fragment>
+        ))}
+      </div>
     </div>
   );
 }

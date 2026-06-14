@@ -11,8 +11,18 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { slugForCode } from '../data/teamCodes';
+import { FIXTURES } from '../data/matches';
+import { codeForSlug, slugForCode } from '../data/teamCodes';
 import { TEAMS_BY_SLUG } from '../data/teams';
+
+/** Mapa código ESPN → bandeira emoji, derivado dos fixtures locais. */
+const FLAG_BY_CODE: Record<string, string> = {};
+for (const f of FIXTURES) {
+  const hCode = codeForSlug(f.homeSlug);
+  const aCode = codeForSlug(f.awaySlug);
+  if (hCode && f.homeFlag) FLAG_BY_CODE[hCode] = f.homeFlag;
+  if (aCode && f.awayFlag) FLAG_BY_CODE[aCode] = f.awayFlag;
+}
 
 const STANDINGS_URL =
   'https://site.api.espn.com/apis/v2/sports/soccer/fifa.world/standings';
@@ -62,7 +72,7 @@ function mapRow(entry: any): StandingRow {
     code,
     slug,
     name: local?.team.name ?? entry?.team?.displayName ?? code,
-    flag: local?.team.flag ?? null,
+    flag: local?.team.flag ?? FLAG_BY_CODE[code] ?? null,
     rank: stat(stats, 'rank'),
     points: stat(stats, 'points'),
     played: stat(stats, 'gamesPlayed'),
