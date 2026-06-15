@@ -11,6 +11,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { translateCommentary } from '../utils/translateCommentary';
 
 const SUMMARY_BASE =
   'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary';
@@ -166,7 +167,7 @@ function parseCommentary(json: any): CommentaryItem[] {
   const raw: any[] = Array.isArray(json?.commentary) ? json.commentary : [];
   return raw
     .filter((c) => c?.text)
-    .map((c) => ({ clock: c?.time?.displayValue ?? '', text: String(c.text) }))
+    .map((c) => ({ clock: c?.time?.displayValue ?? '', text: translateCommentary(String(c.text)) }))
     .reverse()
     .slice(0, 12);
 }
