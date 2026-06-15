@@ -15,7 +15,7 @@ export const GROUPS: Group[] = [
     teams: [
       { name: 'Canadá', flag: '🇨🇦', isHost: true },
       { name: 'Bósnia-Herzegovina', flag: '🇧🇦', isHost: false },
-      { name: 'Qatar', flag: '🇶🇦', isHost: false },
+      { name: 'Catar', flag: '🇶🇦', isHost: false },
       { name: 'Suíça', flag: '🇨🇭', isHost: false },
     ],
   },

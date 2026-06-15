@@ -1,38 +1,47 @@
 import { useState, useRef } from 'react';
-import type { Formation, Player } from '../types';
+import type { Formation } from '../types';
+
+// ─── Pitch player model (fonte-agnóstico: ESPN ou elenco local) ──────────────
+
+export type PitchPosGroup = 'GK' | 'DEF' | 'MID' | 'FWD';
+
+export interface PitchPlayer {
+  number: number;
+  name: string;
+  posGroup: PitchPosGroup;
+  photo?: string | null;
+}
 
 // ─── Formation layout ────────────────────────────────────────────────────────
 
-function parseFormation(formation: Formation): number[] {
+function parseFormation(formation: Formation | string): number[] {
   return formation.split('-').map(Number);
 }
 
 // ─── Player selection ────────────────────────────────────────────────────────
 
-interface StartingEleven {
-  goalkeeper: Player;
-  lines: Player[][];
+export interface StartingEleven {
+  goalkeeper: PitchPlayer;
+  lines: PitchPlayer[][];   // lines[0] = defesa … lines[last] = ataque
 }
 
-function pickStartingEleven(players: Player[], formation: Formation): StartingEleven | null {
-  const goalkeeper = players.find(p => p.position === 'Goleiro');
+function pickStartingEleven(players: PitchPlayer[], formation: Formation | string): StartingEleven | null {
+  const goalkeeper = players.find(p => p.posGroup === 'GK');
   if (!goalkeeper) return null;
 
   const lineCounts = parseFormation(formation);
 
-  const byPos: Record<string, Player[]> = {
-    Defensor: players.filter(p => p.position === 'Defensor'),
-    'Meio-campista': players.filter(p => p.position === 'Meio-campista'),
-    Atacante: players.filter(p => p.position === 'Atacante'),
+  const byPos: Record<PitchPosGroup, PitchPlayer[]> = {
+    GK: [],
+    DEF: players.filter(p => p.posGroup === 'DEF'),
+    MID: players.filter(p => p.posGroup === 'MID'),
+    FWD: players.filter(p => p.posGroup === 'FWD'),
   };
 
-  // line[0] = Defensor, last line = Atacante, rest = Meio-campista
-  const lines: Player[][] = lineCounts.map((count, i) => {
-    let pos: Player['position'];
-    if (i === 0) pos = 'Defensor';
-    else if (i === lineCounts.length - 1) pos = 'Atacante';
-    else pos = 'Meio-campista';
-    return byPos[pos].splice(0, count);
+  // line[0] = defesa, última = ataque, demais = meio-campo
+  const lines: PitchPlayer[][] = lineCounts.map((count, i) => {
+    const key: PitchPosGroup = i === 0 ? 'DEF' : i === lineCounts.length - 1 ? 'FWD' : 'MID';
+    return byPos[key].splice(0, count);
   });
 
   return { goalkeeper, lines };
@@ -75,11 +84,22 @@ function midY(lineIdx: number, totalMidLines: number): number {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 interface Props {
-  players: Player[];
-  formation: Formation;
+  /** Escalação heurística (por elenco). Ignorado quando `lineup` é fornecido. */
+  players?: PitchPlayer[];
+  /** Escalação explícita pré-montada (ex. XI real da ESPN) — tem prioridade. */
+  lineup?: StartingEleven | null;
+  formation: Formation | string;
   teamName: string;
-  teamSlug?: string;
-  onPlayerClick?: (player: Player) => void;
+  teamColor?: string | null;       // hex sem '#', ex. "d42339"
+  teamAltColor?: string | null;
+  onPlayerClick?: (player: PitchPlayer) => void;
+}
+
+/** Normaliza cor hex (com/sem '#') → "#rrggbb" ou null. */
+function normHex(c?: string | null): string | null {
+  if (!c) return null;
+  const h = c.replace('#', '').trim();
+  return /^[0-9a-fA-F]{6}$/.test(h) ? `#${h}` : null;
 }
 
 // ── Drag state interface (outside component to avoid re-declaration) ──────────
@@ -91,20 +111,26 @@ interface DragState {
   startY: number;
 }
 
-export default function FootballPitch({ players, formation, teamName, onPlayerClick }: Props) {
+export default function FootballPitch({ players, lineup, formation, teamName, teamColor, teamAltColor, onPlayerClick }: Props) {
   // ── Drag & Drop state (hooks MUST be before any early return) ────────────────
   const svgRef = useRef<SVGSVGElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const [overrides, setOverrides] = useState<Map<number, { x: number; y: number }>>(new Map());
   const [draggingPlayer, setDraggingPlayer] = useState<number | null>(null);
+  // Fotos que falharam ao carregar → caem para a bolinha numerada.
+  const [photoErrors, setPhotoErrors] = useState<Set<number>>(new Set());
+
+  const outfieldColor = normHex(teamColor) ?? '#1e3a8a';
+  const gkColor = normHex(teamAltColor) ?? '#b45309';
   // Track the last rendered formation to detect changes and flush overrides.
-  const [activeFormation, setActiveFormation] = useState<Formation>(formation);
+  const [activeFormation, setActiveFormation] = useState<string>(formation);
   if (activeFormation !== formation) {
     setActiveFormation(formation);
     setOverrides(new Map());
   }
 
-  const result = pickStartingEleven(players, formation);
+  // Escalação explícita (XI real) tem prioridade; senão, heurística por elenco.
+  const result = lineup ?? pickStartingEleven(players ?? [], formation);
 
   if (!result) {
     return (
@@ -178,7 +204,7 @@ export default function FootballPitch({ players, formation, teamName, onPlayerCl
     });
   }
 
-  function handlePointerUp(e: React.PointerEvent, playerNumber: number, player: Player) {
+  function handlePointerUp(e: React.PointerEvent, playerNumber: number, player: PitchPlayer) {
     if (!dragRef.current || dragRef.current.playerNumber !== playerNumber) return;
     const totalDx = e.clientX - dragRef.current.startX;
     const totalDy = e.clientY - dragRef.current.startY;
@@ -197,7 +223,7 @@ export default function FootballPitch({ players, formation, teamName, onPlayerCl
   const midLines  = lines.slice(1, -1);
 
   interface PositionedPlayer {
-    player: Player;
+    player: PitchPlayer;
     x: number;
     y: number;
     delay: number;
@@ -265,11 +291,12 @@ export default function FootballPitch({ players, formation, teamName, onPlayerCl
         }
       `}</style>
 
-      {/* 3-D perspective wrapper */}
+      {/* 3-D perspective wrapper — paddingBottom compensa o overflow visual do rotateX */}
       <div
         style={{
           perspective: '700px',
           perspectiveOrigin: '50% 10%',
+          paddingBottom: '4rem',
         }}
       >
         <div
@@ -310,14 +337,11 @@ export default function FootballPitch({ players, formation, teamName, onPlayerCl
                 <stop offset="100%" stopColor="rgba(0,0,0,0.35)" />
               </radialGradient>
 
-              {/* Player circle gradients */}
-              <radialGradient id="gkGrad" cx="40%" cy="30%" r="70%">
-                <stop offset="0%" stopColor="#fcd34d" />
-                <stop offset="100%" stopColor="#b45309" />
-              </radialGradient>
-              <radialGradient id="playerGrad" cx="40%" cy="30%" r="70%">
-                <stop offset="0%" stopColor="#60a5fa" />
-                <stop offset="100%" stopColor="#1e3a8a" />
+              {/* Sombreado esférico — aplicado sobre a cor sólida do time (3-D em qualquer cor) */}
+              <radialGradient id="sphereShade" cx="38%" cy="28%" r="75%">
+                <stop offset="0%" stopColor="rgba(255,255,255,0.45)" />
+                <stop offset="45%" stopColor="rgba(255,255,255,0)" />
+                <stop offset="100%" stopColor="rgba(0,0,0,0.4)" />
               </radialGradient>
             </defs>
 
@@ -429,31 +453,57 @@ export default function FootballPitch({ players, formation, teamName, onPlayerCl
                   />
                   {/* Drop shadow */}
                   <ellipse cx={0} cy={r + 2} rx={sx} ry={sy} fill="rgba(0,0,0,0.35)" />
-                  {/* Circle */}
-                  <circle
-                    cx={0} cy={0} r={r}
-                    fill={isGK ? 'url(#gkGrad)' : 'url(#playerGrad)'}
-                    stroke="rgba(255,255,255,0.9)"
-                    strokeWidth={1.5}
-                  />
-                  {/* Highlight gloss */}
-                  <ellipse
-                    cx={-r * 0.22} cy={-r * 0.3}
-                    rx={r * 0.38} ry={r * 0.22}
-                    fill="rgba(255,255,255,0.28)"
-                  />
-                  {/* Number */}
-                  <text
-                    x={0} y={0.5}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    fontSize={fs}
-                    fontWeight="800"
-                    fill="white"
-                    fontFamily="system-ui, sans-serif"
-                  >
-                    {player.number}
-                  </text>
+
+                  {(() => {
+                    const showPhoto = Boolean(player.photo) && !photoErrors.has(player.number);
+                    if (showPhoto) {
+                      const ir = r - 1.2;
+                      const badgeR = r * 0.5;
+                      const bx = r * 0.62, by = r * 0.62;
+                      return (
+                        <>
+                          {/* Aro com a cor do time */}
+                          <circle cx={0} cy={0} r={r} fill={isGK ? gkColor : outfieldColor} stroke="rgba(255,255,255,0.95)" strokeWidth={1.6} />
+                          {/* Foto recortada em círculo */}
+                          <clipPath id={`pc-${player.number}`}>
+                            <circle cx={0} cy={0} r={ir} />
+                          </clipPath>
+                          <image
+                            href={player.photo as string}
+                            x={-ir} y={-ir} width={ir * 2} height={ir * 2}
+                            clipPath={`url(#pc-${player.number})`}
+                            preserveAspectRatio="xMidYMid slice"
+                            onError={() => setPhotoErrors(prev => new Set(prev).add(player.number))}
+                          />
+                          {/* Selo com o número */}
+                          <circle cx={bx} cy={by} r={badgeR} fill={isGK ? gkColor : outfieldColor} stroke="white" strokeWidth={0.8} />
+                          <text
+                            x={bx} y={by + 0.4}
+                            textAnchor="middle" dominantBaseline="middle"
+                            fontSize={badgeR * 1.15} fontWeight="800" fill="white"
+                            fontFamily="system-ui, sans-serif"
+                          >
+                            {player.number}
+                          </text>
+                        </>
+                      );
+                    }
+                    return (
+                      <>
+                        {/* Bolinha numerada (cor do time + sombreado esférico) */}
+                        <circle cx={0} cy={0} r={r} fill={isGK ? gkColor : outfieldColor} stroke="rgba(255,255,255,0.9)" strokeWidth={1.5} />
+                        <circle cx={0} cy={0} r={r} fill="url(#sphereShade)" />
+                        <text
+                          x={0} y={0.5}
+                          textAnchor="middle" dominantBaseline="middle"
+                          fontSize={fs} fontWeight="800" fill="white"
+                          fontFamily="system-ui, sans-serif"
+                        >
+                          {player.number}
+                        </text>
+                      </>
+                    );
+                  })()}
                   {/* Name label */}
                   <text
                     x={0} y={r + 5}

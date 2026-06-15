@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Trophy, Radio, Goal, Clock, AlertTriangle } from 'lucide-react';
+import { Trophy, Radio, Goal, Clock, AlertTriangle, Crown, Users } from 'lucide-react';
 import { useTournamentLeaders, type Scorer, type GoalMoment } from '../hooks/useTournamentLeaders';
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
@@ -178,10 +179,110 @@ function SectionTitle({ icon, children, count }: { icon: React.ReactNode; childr
   );
 }
 
-function Panel({ children }: { children: React.ReactNode }) {
+/** Painel com altura limitada e scroll interno — evita que a lista estique a página. */
+function ScrollPanel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700/60">
-      {children}
+    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+      <div className="max-h-[24rem] overflow-y-auto scrollbar-none divide-y divide-gray-100 dark:divide-gray-700/60 lg:max-h-[30rem]">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* ── Resumo (stats) ──────────────────────────────────────────────────────── */
+
+function StatCard({ icon, label, value, sub, to }: {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+  sub?: string;
+  to?: string;
+}) {
+  const inner = (
+    <>
+      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+        {icon}
+        <span className="truncate">{label}</span>
+      </div>
+      <p className="mt-1 truncate text-lg font-extrabold leading-tight text-gray-900 group-hover:text-green-600 dark:text-gray-100 dark:group-hover:text-green-400">
+        {value}
+      </p>
+      {sub && <p className="truncate text-[11px] text-gray-400 dark:text-gray-500">{sub}</p>}
+    </>
+  );
+  const cls = 'block rounded-xl border border-gray-200 bg-white px-3 py-2.5 shadow-sm dark:border-gray-700 dark:bg-gray-800';
+  return to ? (
+    <Link to={to} className={`group transition-transform hover:-translate-y-0.5 hover:shadow-md ${cls}`}>
+      {inner}
+    </Link>
+  ) : (
+    <div className={cls}>{inner}</div>
+  );
+}
+
+function StatStrip({ leader, goalCount, scorerCount }: {
+  leader: Scorer | undefined;
+  goalCount: number;
+  scorerCount: number;
+}) {
+  return (
+    <div className="grid grid-cols-3 gap-2 sm:gap-3">
+      <StatCard
+        icon={<Crown size={12} className="text-amber-500" />}
+        label="Líder"
+        value={leader ? leader.shortName : '—'}
+        sub={leader ? `${leader.goals} ${leader.goals === 1 ? 'gol' : 'gols'}` : undefined}
+        to={leader?.teamSlug ? `/team/${leader.teamSlug}` : undefined}
+      />
+      <StatCard
+        icon={<Goal size={12} className="text-green-500" />}
+        label="Gols"
+        value={goalCount}
+        sub="no torneio"
+      />
+      <StatCard
+        icon={<Users size={12} className="text-blue-500" />}
+        label="Artilheiros"
+        value={scorerCount}
+        sub="marcaram"
+      />
+    </div>
+  );
+}
+
+/* ── Alternador (mobile) ─────────────────────────────────────────────────── */
+
+type Tab = 'scorers' | 'goals';
+
+function SegTabs({ tab, onChange, scorerCount, goalCount }: {
+  tab: Tab;
+  onChange: (t: Tab) => void;
+  scorerCount: number;
+  goalCount: number;
+}) {
+  const btn = (active: boolean) =>
+    `flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+      active
+        ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-gray-100'
+        : 'text-gray-500 dark:text-gray-400'
+    }`;
+  const pill = (active: boolean) =>
+    `rounded-full px-1.5 text-[10px] font-bold tabular-nums ${
+      active ? 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400' : 'text-gray-400'
+    }`;
+  return (
+    <div className="flex gap-1 rounded-xl bg-gray-100 p-1 dark:bg-gray-800 lg:hidden">
+      <button type="button" onClick={() => onChange('scorers')} className={btn(tab === 'scorers')}>
+        <Trophy size={14} className={tab === 'scorers' ? 'text-amber-500' : ''} />
+        Artilharia
+        <span className={pill(tab === 'scorers')}>{scorerCount}</span>
+      </button>
+      <button type="button" onClick={() => onChange('goals')} className={btn(tab === 'goals')}>
+        <Clock size={14} className={tab === 'goals' ? 'text-green-500' : ''} />
+        Gols
+        <span className={pill(tab === 'goals')}>{goalCount}</span>
+      </button>
     </div>
   );
 }
@@ -202,14 +303,16 @@ function EmptyState() {
 
 export function RankingsView() {
   const { scorers, recentGoals, lastUpdated, loading, error, available } = useTournamentLeaders();
+  const [tab, setTab] = useState<Tab>('scorers');
 
   const ranked = withRanks(scorers);
   const top3 = ranked.slice(0, 3);
   const rest = ranked.slice(3, 50);
+  const goals = recentGoals.slice(0, 30);
   const hasData = scorers.length > 0;
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
+    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
       {/* Header */}
       <div className="mb-5 flex items-start justify-between gap-3">
         <div>
@@ -249,33 +352,53 @@ export function RankingsView() {
 
       {/* Conteúdo */}
       {hasData && (
-        <div className="space-y-8">
-          <section>
-            <SectionTitle icon={<Trophy size={15} className="text-amber-500" />} count={scorers.length}>
-              Artilharia
-            </SectionTitle>
-            {top3.length > 0 && <Podium top={top3} />}
-            {rest.length > 0 && (
-              <div className="mt-4">
-                <Panel>
+        <div className="space-y-5">
+          {/* Resumo */}
+          <StatStrip leader={scorers[0]} goalCount={recentGoals.length} scorerCount={scorers.length} />
+
+          {/* Pódio (destaque) */}
+          {top3.length > 0 && <Podium top={top3} />}
+
+          {/* Alternador no mobile; lado a lado no desktop */}
+          <SegTabs tab={tab} onChange={setTab} scorerCount={scorers.length} goalCount={recentGoals.length} />
+
+          <div className="grid gap-5 lg:grid-cols-2">
+            {/* Artilharia (4º+) */}
+            <section className={`${tab === 'scorers' ? '' : 'hidden'} lg:block`}>
+              <SectionTitle icon={<Trophy size={15} className="text-amber-500" />} count={scorers.length}>
+                Artilharia
+              </SectionTitle>
+              {rest.length > 0 ? (
+                <ScrollPanel>
                   {rest.map(({ scorer, rank }) => (
                     <ScorerRow key={scorer.athleteId} scorer={scorer} rank={rank} />
                   ))}
-                </Panel>
-              </div>
-            )}
-          </section>
-
-          {recentGoals.length > 0 && (
-            <section>
-              <SectionTitle icon={<Clock size={15} className="text-green-500" />}>Gols recentes</SectionTitle>
-              <Panel>
-                {recentGoals.slice(0, 12).map((g) => (
-                  <GoalItem key={g.id} goal={g} />
-                ))}
-              </Panel>
+                </ScrollPanel>
+              ) : (
+                <p className="rounded-2xl border border-dashed border-gray-200 px-4 py-6 text-center text-xs text-gray-400 dark:border-gray-700 dark:text-gray-500">
+                  O pódio acima reúne todos os artilheiros até agora.
+                </p>
+              )}
             </section>
-          )}
+
+            {/* Gols recentes */}
+            <section className={`${tab === 'goals' ? '' : 'hidden'} lg:block`}>
+              <SectionTitle icon={<Clock size={15} className="text-green-500" />} count={recentGoals.length}>
+                Gols recentes
+              </SectionTitle>
+              {goals.length > 0 ? (
+                <ScrollPanel>
+                  {goals.map((g) => (
+                    <GoalItem key={g.id} goal={g} />
+                  ))}
+                </ScrollPanel>
+              ) : (
+                <p className="rounded-2xl border border-dashed border-gray-200 px-4 py-6 text-center text-xs text-gray-400 dark:border-gray-700 dark:text-gray-500">
+                  Nenhum gol registrado ainda.
+                </p>
+              )}
+            </section>
+          </div>
         </div>
       )}
     </div>

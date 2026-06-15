@@ -67,6 +67,34 @@ export function codeForSlug(slug: string): string | null {
   return TEAM_CODE_BY_SLUG[slug] ?? null;
 }
 
+/** Confederação de cada seleção da Copa 2026, indexada pelo código FIFA. */
+export const CONFEDERATION_BY_CODE: Record<string, string> = {
+  // CONMEBOL
+  ARG: 'CONMEBOL', BRA: 'CONMEBOL', COL: 'CONMEBOL', ECU: 'CONMEBOL',
+  PAR: 'CONMEBOL', URU: 'CONMEBOL',
+  // CONCACAF
+  CAN: 'CONCACAF', CUW: 'CONCACAF', HAI: 'CONCACAF', MEX: 'CONCACAF',
+  PAN: 'CONCACAF', USA: 'CONCACAF',
+  // UEFA
+  AUT: 'UEFA', BEL: 'UEFA', BIH: 'UEFA', CRO: 'UEFA', CZE: 'UEFA',
+  ENG: 'UEFA', ESP: 'UEFA', FRA: 'UEFA', GER: 'UEFA', NED: 'UEFA',
+  NOR: 'UEFA', POR: 'UEFA', SCO: 'UEFA', SUI: 'UEFA', SWE: 'UEFA', TUR: 'UEFA',
+  // CAF
+  ALG: 'CAF', CIV: 'CAF', COD: 'CAF', CPV: 'CAF', EGY: 'CAF',
+  GHA: 'CAF', MAR: 'CAF', RSA: 'CAF', SEN: 'CAF', TUN: 'CAF',
+  // AFC
+  AUS: 'AFC', IRN: 'AFC', IRQ: 'AFC', JOR: 'AFC', JPN: 'AFC',
+  KOR: 'AFC', KSA: 'AFC', QAT: 'AFC', UZB: 'AFC',
+  // OFC
+  NZL: 'OFC',
+};
+
+/** Confederação a partir do slug PT-BR (ex. "senegal" → "CAF"). */
+export function confederationForSlug(slug: string): string | null {
+  const code = codeForSlug(slug);
+  return code ? CONFEDERATION_BY_CODE[code] ?? null : null;
+}
+
 /** Mapa reverso código FIFA → slug (para casar times vindos da ESPN). */
 export const SLUG_BY_TEAM_CODE: Record<string, string> = Object.fromEntries(
   Object.entries(TEAM_CODE_BY_SLUG).map(([slug, code]) => [code, slug]),
