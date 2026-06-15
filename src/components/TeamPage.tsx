@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft, Calendar, MapPin, Radio, Trophy, Ruler, Cake, Activity, Shirt, X,
+  Weight, Globe, ShieldAlert,
 } from 'lucide-react';
 import { getTeamDetail } from '../data/teams';
 import type { Fixture, Formation, Player } from '../types';
@@ -16,6 +18,7 @@ import { useTeamLineup, type LineupStarter } from '../hooks/useTeamLineup';
 import { useTeamStats } from '../hooks/useTeamStats';
 import { useLiveScores } from '../hooks/useLiveScores';
 import { resolvePlayerPhoto, initialsFor } from '../data/playerPhoto';
+import { translateCountry } from '../utils/translateCommentary';
 import FootballPitch, { type PitchPlayer, type StartingEleven } from './FootballPitch';
 import PlayerModal from './PlayerModal';
 
@@ -43,6 +46,44 @@ function darken(hex: string, amt = 0.45): string {
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
 }
 
+/**
+ * Fotos "cutout" (thesportsdb / wikimedia) são recortes de meio-corpo: o rosto
+ * fica no terço superior. Num crop circular centralizado, o rosto sai do quadro.
+ * Detectamos a fonte pela URL p/ alinhar o crop ao topo (`object-top`).
+ * Headshots oficiais da ESPN já vêm enquadrados 1:1 no rosto → crop centralizado.
+ */
+function isCutoutPhoto(url: string | null): boolean {
+  if (!url) return false;
+  return /thesportsdb\.com|wikimedia\.org|wikipedia\.org/i.test(url);
+}
+
+/** Converte "183 lbs" → "83 kg". Mantém original se não reconhecer. */
+function weightToKg(w: string | null): string | null {
+  if (!w) return null;
+  const m = w.match(/([\d.]+)\s*lb/i);
+  if (m) return `${Math.round(parseFloat(m[1]) * 0.453592)} kg`;
+  return w;
+}
+
+/** Converte altura "6' 2"" (pés/pol) → "1,88 m". Mantém original se não reconhecer. */
+function heightToMeters(h: string | null): string | null {
+  if (!h) return null;
+  const m = h.match(/(\d+)'\s*(\d+)/);
+  if (m) {
+    const cm = (parseInt(m[1], 10) * 12 + parseInt(m[2], 10)) * 2.54;
+    return `${(cm / 100).toFixed(2).replace('.', ',')} m`;
+  }
+  return h;
+}
+
+/** Data de nascimento ISO → "13 de dezembro de 1987". */
+function formatBirthDate(iso: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+}
+
 const PHASE_LABEL = (g: Fixture): string =>
   g.phase === 'group'
     ? `Grupo ${g.group} · R${g.matchday}`
@@ -61,6 +102,26 @@ const POS_LABEL: Record<PosGroup, string> = {
 const POS_LABEL_SING: Record<PosGroup, string> = {
   GK: 'Goleiro', DEF: 'Defensor', MID: 'Meio-campista', FWD: 'Atacante',
 };
+/** Nomes de posição detalhados vindos da ESPN (em inglês) → PT-BR. */
+const POS_NAME_PT: Record<string, string> = {
+  Goalkeeper: 'Goleiro',
+  Defender: 'Defensor',
+  Midfielder: 'Meio-campista',
+  Forward: 'Atacante',
+  'Center Back': 'Zagueiro',
+  'Full Back': 'Lateral',
+  'Left Back': 'Lateral-esquerdo',
+  'Right Back': 'Lateral-direito',
+  'Defensive Midfielder': 'Volante',
+  'Central Midfielder': 'Meia-central',
+  'Attacking Midfielder': 'Meia-atacante',
+  'Left Midfielder': 'Meia-esquerda',
+  'Right Midfielder': 'Meia-direita',
+  'Left Winger': 'Ponta-esquerda',
+  'Right Winger': 'Ponta-direita',
+  'Center Forward': 'Centroavante',
+  Striker: 'Atacante',
+};
 const LOCAL_TO_GROUP: Record<Player['position'], PosGroup> = {
   Goleiro: 'GK', Defensor: 'DEF', 'Meio-campista': 'MID', Atacante: 'FWD',
 };
@@ -71,35 +132,52 @@ interface SquadVM {
   number: number | null;
   name: string;
   shortName: string;
+  fullName: string | null;
   posGroup: PosGroup;
   posLabel: string;
+  posName: string | null;
   photo: string | null;
+  isCutout: boolean;
   age: number | null;
+  dateOfBirth: string | null;
   height: string | null;
   weight: string | null;
   club: string | null;
+  flag: string | null;
   birthCountry: string | null;
+  birthCity: string | null;
+  citizenship: string | null;
   injured: boolean;
+  injuryDetail: string | null;
   source: 'espn' | 'local';
   localPlayer?: Player;
   espn?: EspnPlayer;
 }
 
 function fromEspn(p: EspnPlayer): SquadVM {
+  const photo = resolvePlayerPhoto({ id: p.id, name: p.name, espnPhoto: p.photo });
   return {
     key: p.id || `${p.number}-${p.name}`,
     number: p.number,
     name: p.name,
     shortName: p.shortName,
+    fullName: p.fullName,
     posGroup: p.posGroup,
     posLabel: POS_LABEL_SING[p.posGroup],
-    photo: resolvePlayerPhoto({ id: p.id, name: p.name, espnPhoto: p.photo }),
+    posName: p.posName || null,
+    photo,
+    isCutout: isCutoutPhoto(photo),
     age: p.age,
+    dateOfBirth: p.dateOfBirth,
     height: p.height,
     weight: p.weight,
     club: null,
+    flag: p.flag,
     birthCountry: p.birthCountry,
+    birthCity: p.birthCity,
+    citizenship: p.citizenship,
     injured: p.injured,
+    injuryDetail: p.injuryDetail,
     source: 'espn',
     espn: p,
   };
@@ -107,47 +185,65 @@ function fromEspn(p: EspnPlayer): SquadVM {
 
 function fromLocal(p: Player): SquadVM {
   const group = LOCAL_TO_GROUP[p.position];
+  const photo = resolvePlayerPhoto({ name: p.name });
   return {
     key: `${p.number}-${p.name}`,
     number: p.number,
     name: p.name,
     shortName: p.name,
+    fullName: null,
     posGroup: group,
     posLabel: POS_LABEL_SING[group],
-    photo: resolvePlayerPhoto({ name: p.name }),
+    posName: null,
+    photo,
+    isCutout: isCutoutPhoto(photo),
     age: null,
+    dateOfBirth: null,
     height: null,
     weight: null,
     club: p.club,
+    flag: null,
     birthCountry: null,
+    birthCity: null,
+    citizenship: null,
     injured: false,
+    injuryDetail: null,
     source: 'local',
     localPlayer: p,
   };
 }
 
 function fromStarter(s: LineupStarter): SquadVM {
+  const photo = resolvePlayerPhoto({ id: s.id, name: s.name, espnPhoto: s.photo });
   return {
     key: s.id || `${s.number}-${s.name}`,
     number: s.number,
     name: s.name,
     shortName: s.shortName,
+    fullName: null,
     posGroup: s.posGroup,
     posLabel: POS_LABEL_SING[s.posGroup],
-    photo: resolvePlayerPhoto({ id: s.id, name: s.name, espnPhoto: s.photo }),
+    posName: null,
+    photo,
+    isCutout: isCutoutPhoto(photo),
     age: null,
+    dateOfBirth: null,
     height: null,
     weight: null,
     club: null,
+    flag: null,
     birthCountry: null,
+    birthCity: null,
+    citizenship: null,
     injured: false,
+    injuryDetail: null,
     source: 'espn',
   };
 }
 
 /* ── Avatar com fallback (foto → número/iniciais) ────────────────────────── */
 
-function Avatar({ src, name, color, className }: { src: string | null; name?: string; color?: string | null; className?: string }) {
+function Avatar({ src, name, color, className, cutout }: { src: string | null; name?: string; color?: string | null; className?: string; cutout?: boolean }) {
   const [err, setErr] = useState(false);
   if (!src || err) {
     const base = color && /^#[0-9a-fA-F]{6}$/.test(color) ? color : '#64748b';
@@ -160,7 +256,9 @@ function Avatar({ src, name, color, className }: { src: string | null; name?: st
       </div>
     );
   }
-  return <img src={src} alt={name ?? ''} loading="lazy" onError={() => setErr(true)} className={className ?? 'h-full w-full object-cover'} />;
+  // Cutouts (meio-corpo): alinha o crop ao topo p/ manter o rosto visível.
+  const fit = className ?? `h-full w-full object-cover ${cutout ? 'object-top' : 'object-center'}`;
+  return <img src={src} alt={name ?? ''} loading="lazy" onError={() => setErr(true)} className={fit} />;
 }
 
 /* ── Stat box (recorde no torneio) ───────────────────────────────────────── */
@@ -232,7 +330,7 @@ function SquadCard({ p, color, onClick }: { p: SquadVM; color: string | null; on
     >
       <div className="relative h-12 w-12 shrink-0">
         <div className="h-full w-full overflow-hidden rounded-full bg-gray-100 ring-2 ring-gray-100 dark:bg-gray-700 dark:ring-gray-700">
-          <Avatar src={p.photo} name={p.name} color={color} />
+          <Avatar src={p.photo} name={p.name} color={color} cutout={p.isCutout} />
         </div>
         {p.number != null && (
           <span
@@ -266,66 +364,192 @@ function EspnPlayerModal({ p, teamFlag, color, onClose }: {
   color: string | null;
   onClose: () => void;
 }) {
-  const header = color
-    ? `linear-gradient(135deg, ${color} 0%, ${darken(color, 0.4)} 100%)`
-    : 'linear-gradient(135deg, #16a34a 0%, #14532d 100%)';
-  const rows = [
-    { icon: <Shirt size={14} />, label: 'Camisa', value: p.number != null ? `#${p.number}` : '—' },
-    { icon: <Trophy size={14} />, label: 'Posição', value: p.posLabel },
-    { icon: <Cake size={14} />, label: 'Idade', value: p.age != null ? `${p.age} anos` : '—' },
-    { icon: <Ruler size={14} />, label: 'Altura', value: p.height ?? '—' },
-  ];
-  return (
+  // ESC + scroll lock (portal p/ escapar de qualquer overflow do pai)
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose]);
+
+  const accent = color && /^#[0-9a-fA-F]{6}$/.test(color) ? color : '#16a34a';
+  const header = `linear-gradient(150deg, ${accent} 0%, ${darken(accent, 0.55)} 100%)`;
+
+  // Atributos primários (sempre 3: Camisa, Posição, Idade)
+  const primary = [
+    p.number != null && { icon: <Shirt size={15} strokeWidth={2.5} />, label: 'Camisa', value: `${p.number}` },
+    { icon: <Trophy size={15} strokeWidth={2.5} />, label: 'Posição', value: p.posLabel },
+    p.age != null && { icon: <Cake size={15} strokeWidth={2.5} />, label: 'Idade', value: `${p.age}` },
+  ].filter(Boolean) as { icon: React.ReactNode; label: string; value: string }[];
+
+  // Atributos secundários (linha compacta de metadados físicos)
+  const secondary = [
+    p.height && { icon: <Ruler size={14} strokeWidth={2.5} />, value: heightToMeters(p.height) ?? p.height },
+    p.weight && { icon: <Weight size={14} strokeWidth={2.5} />, value: weightToKg(p.weight) ?? p.weight },
+  ].filter(Boolean) as { icon: React.ReactNode; value: string }[];
+
+  // "Sobre" — linhas descritivas (países sempre em PT-BR)
+  const birthDate = formatBirthDate(p.dateOfBirth);
+  const birthPlace = [p.birthCity, translateCountry(p.birthCountry)].filter(Boolean).join(', ') || null;
+  const citizenshipPt = translateCountry(p.citizenship);
+  // Oculta Nacionalidade quando coincide com o país de nascimento (caso comum).
+  const showCitizenship = citizenshipPt && citizenshipPt !== translateCountry(p.birthCountry);
+  const facts = [
+    birthDate && { icon: <Calendar size={14} />, label: 'Nascimento', value: birthDate },
+    birthPlace && { icon: <MapPin size={14} />, label: 'Naturalidade', value: birthPlace },
+    showCitizenship && { icon: <Globe size={14} />, label: 'Nacionalidade', value: citizenshipPt },
+  ].filter(Boolean) as { icon: React.ReactNode; label: string; value: string }[];
+
+  // Posição detalhada (PT-BR) com fallback para a genérica
+  const posNamePt = (p.posName && POS_NAME_PT[p.posName]) || p.posLabel;
+
+  const content = (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
+      style={{ backgroundColor: 'rgba(8,10,14,0.72)', backdropFilter: 'blur(6px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900">
-        <div className="relative px-5 pb-12 pt-5" style={{ background: header }}>
+      <style>{`
+        @keyframes ppIn { from { opacity:0; transform: translateY(20px) scale(.94); } to { opacity:1; transform:none; } }
+        @keyframes ppFloat { from { opacity:0; transform: translateY(14px) scale(.9); } to { opacity:1; transform:none; } }
+        .pp-card { animation: ppIn .26s cubic-bezier(.16,1,.3,1) both; }
+        .pp-avatar { animation: ppFloat .42s cubic-bezier(.16,1,.3,1) .08s both; }
+      `}</style>
+
+      <div className="pp-card w-full max-w-sm overflow-hidden rounded-[20px] bg-white shadow-2xl ring-1 ring-black/5 dark:bg-gray-900 dark:ring-white/10">
+
+        {/* ── Hero ── */}
+        <div className="relative overflow-hidden px-5 pb-16 pt-5" style={{ background: header }}>
+          {/* número gigante como marca d'água */}
+          {p.number != null && (
+            <span
+              className="pointer-events-none absolute -right-3 -top-6 select-none font-black leading-none text-white/10"
+              style={{ fontSize: '9rem' }}
+            >
+              {p.number}
+            </span>
+          )}
+          {/* brilho radial sutil */}
+          <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(120% 90% at 15% 0%, rgba(255,255,255,.18), transparent 60%)' }} />
+
           <button
             onClick={onClose}
-            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white"
+            className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full text-white/70 transition hover:bg-white/15 hover:text-white"
             aria-label="Fechar"
           >
             <X size={18} />
           </button>
-          <span className="inline-block rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-white/90">
-            {p.posLabel}
-          </span>
-          <div className="mt-2 flex items-start justify-between gap-2">
-            <h2 className="text-2xl font-black leading-tight text-white">{p.name}</h2>
-            <span className="text-3xl leading-none">{teamFlag}</span>
-          </div>
-        </div>
-        <div className="-mt-10 mb-3 flex justify-center">
-          <div className="h-20 w-20 overflow-hidden rounded-full border-4 border-white bg-gray-200 shadow-xl dark:border-gray-900 dark:bg-gray-700">
-            <Avatar src={p.photo} name={p.name} color={color} />
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-2 px-5 pb-5">
-          {rows.map((r) => (
-            <div key={r.label} className="rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
-              <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
-                {r.icon}{r.label}
+
+          <div className="relative">
+            <span className="inline-block rounded-full bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-white shadow-sm backdrop-blur-sm">
+              {posNamePt}
+            </span>
+            <div className="mt-2.5 flex items-end justify-between gap-2">
+              <div className="min-w-0">
+                <h2 className="text-[1.7rem] font-black leading-[1.05] tracking-tight text-white drop-shadow-sm">
+                  {p.name}
+                </h2>
+                {p.fullName && p.fullName.trim().toLowerCase() !== p.name.trim().toLowerCase() && (
+                  <p className="mt-1 truncate text-xs font-medium text-white/65">{p.fullName.trim()}</p>
+                )}
               </div>
-              <p className="mt-0.5 text-sm font-bold text-gray-900 dark:text-gray-100">{r.value}</p>
+              {/* bandeira oficial da ESPN > emoji */}
+              {p.flag ? (
+                <img src={p.flag} alt="" className="h-7 w-10 shrink-0 rounded-[3px] object-cover shadow-md ring-1 ring-white/30" />
+              ) : (
+                <span className="shrink-0 text-3xl leading-none drop-shadow">{teamFlag}</span>
+              )}
             </div>
-          ))}
+          </div>
         </div>
-        {(p.injured || p.birthCountry) && (
-          <div className="flex flex-wrap items-center gap-2 px-5 pb-5 text-xs text-gray-500 dark:text-gray-400">
-            {p.birthCountry && <span>Nascido em {p.birthCountry}</span>}
-            {p.injured && (
-              <span className="rounded-full bg-amber-100 px-2 py-0.5 font-semibold text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
-                Lesão / dúvida
+
+        {/* ── Avatar sobreposto ── */}
+        <div className="-mt-12 mb-4 flex justify-center">
+          <div className="pp-avatar relative">
+            <div
+              className="h-24 w-24 overflow-hidden rounded-full border-[5px] border-white bg-gray-100 shadow-xl dark:border-gray-900 dark:bg-gray-800"
+              style={{ boxShadow: `0 8px 28px -6px ${accent}66` }}
+            >
+              <Avatar src={p.photo} name={p.name} color={color} cutout={p.isCutout} />
+            </div>
+            {/* badge de número sobre o avatar */}
+            {p.number != null && (
+              <span
+                className="absolute -bottom-1 -right-1 flex h-7 min-w-7 items-center justify-center rounded-full px-1.5 text-xs font-black text-white shadow-lg ring-[3px] ring-white dark:ring-gray-900"
+                style={{ backgroundColor: accent }}
+              >
+                {p.number}
               </span>
             )}
           </div>
+        </div>
+
+        {/* ── Atributos primários (sempre 3 cards) ── */}
+        <div className="px-5">
+          <div className="grid grid-cols-3 gap-2">
+            {primary.map((a) => (
+              <div
+                key={a.label}
+                className="rounded-xl bg-gray-50 px-2 py-2.5 text-center ring-1 ring-gray-100 transition dark:bg-gray-800/70 dark:ring-gray-700/60"
+              >
+                <span className="mx-auto mb-1 flex h-6 w-6 items-center justify-center" style={{ color: accent }}>
+                  {a.icon}
+                </span>
+                <p className="text-sm font-extrabold leading-none text-gray-900 dark:text-gray-50">{a.value}</p>
+                <p className="mt-1 text-[9px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">{a.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Atributos secundários (altura/peso, inline) ── */}
+        {secondary.length > 0 && (
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 px-5 text-xs text-gray-500 dark:text-gray-400">
+            {secondary.map((s, i) => (
+              <span key={i} className="inline-flex items-center gap-1">
+                <span className="text-gray-400 dark:text-gray-500">{s.icon}</span>
+                <span className="font-semibold tabular-nums text-gray-700 dark:text-gray-300">{s.value}</span>
+              </span>
+            ))}
+          </div>
         )}
+
+        {/* ── Status de lesão ── */}
+        {p.injured && (
+          <div className="mx-5 mt-3 flex items-center gap-2 rounded-xl bg-amber-50 px-3 py-2 ring-1 ring-amber-200 dark:bg-amber-950/40 dark:ring-amber-900/50">
+            <ShieldAlert size={16} className="shrink-0 text-amber-500" />
+            <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">
+              {p.injuryDetail || 'Lesão / dúvida para a próxima partida'}
+            </span>
+          </div>
+        )}
+
+        {/* ── Sobre ── */}
+        {facts.length > 0 && (
+          <div className="mt-4 border-t border-gray-100 px-5 py-4 dark:border-gray-800">
+            <p className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.15em] text-gray-400 dark:text-gray-500">Sobre</p>
+            <dl className="space-y-2">
+              {facts.map((f) => (
+                <div key={f.label} className="flex items-center gap-2.5 text-xs">
+                  <span className="shrink-0 text-gray-400 dark:text-gray-500">{f.icon}</span>
+                  <dt className="shrink-0 font-medium text-gray-400 dark:text-gray-500">{f.label}</dt>
+                  <dd className="ml-auto truncate text-right font-semibold text-gray-800 dark:text-gray-200">{f.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        )}
+
+        {facts.length === 0 && <div className="pb-5" />}
       </div>
     </div>
   );
+
+  return createPortal(content, document.body);
 }
 
 /* ── Próximo jogo ────────────────────────────────────────────────────────── */

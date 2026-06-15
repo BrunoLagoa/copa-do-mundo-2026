@@ -232,3 +232,24 @@ export function translateCommentary(text: string): string {
   }
   return t;
 }
+
+// Índice de país (string exata, sem regex) derivado do COUNTRY_MAP para
+// traduções pontuais de nomes de países (perfil de jogador, etc.).
+const COUNTRY_EXACT: Record<string, string> = (() => {
+  const idx: Record<string, string> = {};
+  for (const [pattern, value] of COUNTRY_MAP) {
+    // extrai o termo entre \b...\b da fonte do regex
+    const src = pattern.source.replace(/\\b/g, '').replace(/\\/g, '');
+    if (src) idx[src.toLowerCase()] = value;
+  }
+  return idx;
+})();
+
+/**
+ * Traduz um nome de país isolado EN → PT-BR (ex.: "Brazil" → "Brasil").
+ * Retorna o original se não houver correspondência.
+ */
+export function translateCountry(name: string | null | undefined): string | null {
+  if (!name) return null;
+  return COUNTRY_EXACT[name.trim().toLowerCase()] ?? name;
+}

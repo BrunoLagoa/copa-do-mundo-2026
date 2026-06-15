@@ -36,15 +36,22 @@ export interface EspnPlayer {
   id: string;
   name: string;
   shortName: string;
+  fullName: string | null;
   number: number | null;
   posGroup: PosGroup;
   posName: string;
   age: number | null;
+  dateOfBirth: string | null;
   height: string | null;
   weight: string | null;
   photo: string | null;
+  flag: string | null;
   injured: boolean;
+  injuryDetail: string | null;
+  status: string | null;
+  citizenship: string | null;
   birthCountry: string | null;
+  birthCity: string | null;
 }
 
 export interface NextEvent {
@@ -133,19 +140,27 @@ function parseRoster(json: any): EspnPlayer[] {
   const players: EspnPlayer[] = athletes.map((a) => {
     const abbr: string = a?.position?.abbreviation ?? '';
     const jersey = a?.jersey != null ? parseInt(String(a.jersey), 10) : NaN;
+    const injury = Array.isArray(a?.injuries) && a.injuries.length > 0 ? a.injuries[0] : null;
     return {
       id: String(a?.id ?? ''),
       name: a?.displayName ?? a?.fullName ?? '—',
       shortName: a?.shortName ?? a?.displayName ?? '—',
+      fullName: a?.fullName ?? null,
       number: Number.isFinite(jersey) ? jersey : null,
       posGroup: POS_GROUP[abbr] ?? 'MID',
       posName: a?.position?.name ?? '',
       age: a?.age != null ? Number(a.age) : null,
+      dateOfBirth: a?.dateOfBirth ?? null,
       height: a?.displayHeight ?? null,
       weight: a?.displayWeight ?? null,
       photo: a?.headshot?.href ?? null,
-      injured: Array.isArray(a?.injuries) && a.injuries.length > 0,
+      flag: a?.flag?.href ?? null,
+      injured: Boolean(injury),
+      injuryDetail: injury?.detail ?? injury?.type?.description ?? injury?.status ?? null,
+      status: a?.status?.type ?? a?.status?.name ?? null,
+      citizenship: a?.citizenship ?? a?.citizenshipCountry ?? null,
       birthCountry: a?.birthPlace?.country ?? a?.citizenship ?? null,
+      birthCity: a?.birthPlace?.city ?? null,
     };
   });
   // Ordena por linha (GK→FWD) e, dentro da linha, por número da camisa.
