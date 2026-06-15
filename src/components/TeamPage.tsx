@@ -330,8 +330,8 @@ function EspnPlayerModal({ p, teamFlag, color, onClose }: {
 
 /* ── Próximo jogo ────────────────────────────────────────────────────────── */
 
-function NextMatchCallout({ fixture, teamFlag }: { fixture: Fixture; teamFlag: string }) {
-  const isHome = fixture.homeSlug !== 'tbd';
+function NextMatchCallout({ fixture, teamSlug, teamFlag }: { fixture: Fixture; teamSlug: string; teamFlag: string }) {
+  const isHome = fixture.homeSlug === teamSlug;
   const opponent = isHome ? fixture.awayTeam : fixture.homeTeam;
   const opponentFlag = isHome ? fixture.awayFlag : fixture.homeFlag;
   return (
@@ -538,7 +538,7 @@ export function TeamPage() {
       {/* ── PRÓXIMO JOGO ── */}
       {nextMatch && (
         <div className="mt-4">
-          <NextMatchCallout fixture={nextMatch} teamFlag={team.team.flag} />
+          <NextMatchCallout fixture={nextMatch} teamSlug={slug!} teamFlag={team.team.flag} />
         </div>
       )}
 
