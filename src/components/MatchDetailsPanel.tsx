@@ -188,11 +188,11 @@ function Lineups({ home, away, homeName, awayName }: { home: TeamLineup | null; 
 function Commentary({ items }: { items: CommentaryItem[] }) {
   if (items.length === 0) return null;
   return (
-    <ul className="space-y-1.5">
+    <ul className="space-y-2">
       {items.map((c, i) => (
-        <li key={i} className="flex gap-1.5 text-[11px] leading-snug text-gray-600 dark:text-gray-300">
-          {c.clock && <span className="shrink-0 w-7 text-right font-bold tabular-nums text-red-500">{c.clock}</span>}
-          <span className="min-w-0">{c.text}</span>
+        <li key={i} className="flex items-baseline gap-2.5 text-[11px] leading-snug text-gray-600 dark:text-gray-300">
+          {c.clock && <span className="shrink-0 min-w-[3rem] text-right font-bold tabular-nums text-red-500">{c.clock}</span>}
+          <span className="min-w-0 flex-1">{c.text}</span>
         </li>
       ))}
     </ul>
