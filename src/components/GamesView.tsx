@@ -488,16 +488,26 @@ function LiveStatusBar({ state, alerts }: { state: ReturnType<typeof useLiveScor
         {alerts.supported && alerts.permission !== 'denied' && (
           <button
             onClick={alerts.toggle}
-            className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors ${
+            className={`flex items-center gap-1.5 rounded-full font-bold transition-colors ${
               alerts.enabled
-                ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
-                : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
+                ? 'px-2 py-0.5 text-[10px] bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/40 dark:text-green-300 dark:hover:bg-green-900/60'
+                : 'goal-alert-pulse px-2.5 py-1 text-[11px] bg-green-500 text-white shadow-sm hover:bg-green-600'
             }`}
-            title={alerts.enabled ? 'Alertas de gol ligados (som + notificação)' : 'Receber som + notificação quando sair gol'}
+            title={alerts.enabled ? 'Alertas de gol ligados (som + notificação) — toque para desligar' : 'Ative para receber som + notificação a cada gol'}
             aria-pressed={alerts.enabled}
           >
-            {alerts.enabled ? <BellRing size={11} /> : <Bell size={11} />}
-            <span className="hidden sm:inline">{alerts.enabled ? 'Alertas de gol' : 'Alertar gols'}</span>
+            {alerts.enabled ? (
+              <>
+                <BellRing size={11} />
+                <span className="hidden sm:inline">Alerta de gols</span>
+                <CheckCircle size={11} className="shrink-0" />
+              </>
+            ) : (
+              <>
+                <Bell size={12} className="goal-bell-ring shrink-0" />
+                <span>Ativar alerta de gols</span>
+              </>
+            )}
           </button>
         )}
         <div className="flex items-center gap-1.5 text-[11px] text-gray-400 dark:text-gray-500">

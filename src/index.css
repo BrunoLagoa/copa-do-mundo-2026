@@ -73,10 +73,44 @@
 	will-change: border-color, box-shadow;
 }
 
+/* CTA "Ativar alerta de gols": respira um halo verde para chamar atenção
+   enquanto está desligado. Some assim que o usuário ativa. */
+@keyframes goalAlertPulse {
+	0%, 100% {
+		box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55);
+	}
+	70% {
+		box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+	}
+}
+
+.goal-alert-pulse {
+	animation: goalAlertPulse 1.8s ease-in-out infinite;
+	will-change: box-shadow;
+}
+
+/* O sininho balança de leve para reforçar que é preciso ativar. */
+@keyframes goalBellRing {
+	0%, 60%, 100% { transform: rotate(0); }
+	68% { transform: rotate(14deg); }
+	76% { transform: rotate(-12deg); }
+	84% { transform: rotate(8deg); }
+	92% { transform: rotate(-5deg); }
+}
+
+.goal-bell-ring {
+	animation: goalBellRing 2.4s ease-in-out infinite;
+	transform-origin: 50% 10%;
+}
+
 /* Respeita quem prefere menos movimento. */
 @media (prefers-reduced-motion: reduce) {
 	.live-card-pulse {
 		animation: none;
 		border-color: rgba(239, 68, 68, 0.9);
+	}
+	.goal-alert-pulse,
+	.goal-bell-ring {
+		animation: none;
 	}
 }
