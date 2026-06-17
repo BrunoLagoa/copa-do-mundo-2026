@@ -92,17 +92,43 @@ const KIND_ICON: Record<TimelineEvent['kind'], string> = {
 
 const GOAL_KINDS: TimelineEvent['kind'][] = ['goal', 'own-goal', 'penalty'];
 
+/** Torneio: descarta confrontos históricos entre as mesmas seleções. */
+const TOURNAMENT = 'Copa do Mundo 2026';
+
 /**
- * Busca o replay do gol no YouTube. A ESPN não entrega o vídeo de cada gol
- * pela API, então abrimos uma busca já montada ("time x time jogador gol")
- * em vez de um link direto — cobre todo gol, sem custo nem backend.
+ * Monta a busca do replay do gol no YouTube. A ESPN não entrega o vídeo de cada
+ * gol pela API, então abrimos uma busca já pronta em vez de um link direto —
+ * cobre todo gol, sem custo nem backend.
+ *
+ * Precisão: além de "time x time autor", incluímos o minuto (desambigua vários
+ * gols do mesmo jogador), o tipo (pênalti/contra) e o nome do torneio (descarta
+ * jogos antigos entre as mesmas seleções). Em gol ao vivo, ordenamos por data
+ * de upload (sp=CAI%3D) — o clipe recém-postado sobe ao topo em vez de afundar
+ * sob vídeos antigos mais "relevantes".
  */
-function youtubeGoalSearch(ev: TimelineEvent, homeName: string, awayName: string): string {
-  const q = `${homeName} x ${awayName} ${ev.player ?? ''} gol`.replace(/\s+/g, ' ').trim();
-  return `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+function youtubeGoalSearch(
+  ev: TimelineEvent,
+  homeName: string,
+  awayName: string,
+  liveSort: boolean,
+): string {
+  const minute = ev.clock.replace(/[^0-9+]/g, ''); // "90'+2'" → "90+2"
+  const tipo = ev.kind === 'penalty' ? 'pênalti' : ev.kind === 'own-goal' ? 'gol contra' : 'gol';
+  const q = [
+    `${homeName} x ${awayName}`,
+    ev.player ?? '',
+    tipo,
+    minute ? `${minute}'` : '',
+    TOURNAMENT,
+  ]
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+  return liveSort ? `${url}&sp=CAI%3D` : url;
 }
 
-function TimelineRow({ ev, homeName, awayName }: { ev: TimelineEvent; homeName: string; awayName: string }) {
+function TimelineRow({ ev, homeName, awayName, liveSort }: { ev: TimelineEvent; homeName: string; awayName: string; liveSort: boolean }) {
   const isHome = ev.side === 'home';
   const isAway = ev.side === 'away';
   const tag = ev.kind === 'own-goal' ? ' (contra)' : ev.kind === 'penalty' ? ' (pênalti)' : '';
@@ -114,7 +140,7 @@ function TimelineRow({ ev, homeName, awayName }: { ev: TimelineEvent; homeName: 
       <span className="truncate">{ev.player ?? ev.text}{tag}</span>
       {isGoal && (
         <a
-          href={youtubeGoalSearch(ev, homeName, awayName)}
+          href={youtubeGoalSearch(ev, homeName, awayName, liveSort)}
           target="_blank"
           rel="noopener noreferrer"
           title="Procurar o replay deste gol no YouTube"
@@ -134,7 +160,7 @@ function TimelineRow({ ev, homeName, awayName }: { ev: TimelineEvent; homeName: 
   );
 }
 
-function Timeline({ events, loading, homeName, awayName }: { events: TimelineEvent[]; loading: boolean; homeName: string; awayName: string }) {
+function Timeline({ events, loading, homeName, awayName, liveSort }: { events: TimelineEvent[]; loading: boolean; homeName: string; awayName: string; liveSort: boolean }) {
   if (loading && events.length === 0) {
     return <p className="text-center text-[11px] text-gray-400 dark:text-gray-500">Carregando lances…</p>;
   }
@@ -142,7 +168,7 @@ function Timeline({ events, loading, homeName, awayName }: { events: TimelineEve
   return (
     <div className="space-y-1">
       {events.map((ev, i) => (
-        <TimelineRow key={i} ev={ev} homeName={homeName} awayName={awayName} />
+        <TimelineRow key={i} ev={ev} homeName={homeName} awayName={awayName} liveSort={liveSort} />
       ))}
     </div>
   );
@@ -413,7 +439,7 @@ export function MatchDetailsPanel({ live, homeName, awayName }: { live: LiveScor
       {(details.timeline.length > 0 || details.loading) && (
         <>
           <Divider label="Lances" />
-          <Timeline events={details.timeline} loading={details.loading} homeName={homeName} awayName={awayName} />
+          <Timeline events={details.timeline} loading={details.loading} homeName={homeName} awayName={awayName} liveSort={live.isLive} />
         </>
       )}
 
