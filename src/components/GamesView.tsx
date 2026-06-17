@@ -351,7 +351,12 @@ function MatchCard({ match, displayHome, displayAway, onChangeHome, onChangeAway
 
       {/* Painel de detalhes ESPN */}
       {canShowDetails && showDetails && detailsEntry && (
-        <MatchDetailsPanel live={detailsEntry} homeName={match.homeTeam} awayName={match.awayTeam} />
+        <MatchDetailsPanel
+          live={detailsEntry}
+          homeName={match.homeTeam}
+          awayName={match.awayTeam}
+          info={{ venue: match.venue, city: match.city, country: match.country, date: match.fullDate, time: match.time }}
+        />
       )}
 
       {/* Painel de edição inline — apenas jogos encerrados em modo edição */}

@@ -12,19 +12,30 @@
  * acontece sob demanda — nunca em massa.
  */
 
-import { useState } from 'react';
-import { ArrowDown, ArrowUp, ExternalLink, MapPin, Newspaper, Play, PlayCircle, Tv } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { ArrowDown, ArrowUp, Calendar, ExternalLink, Flag, MapPin, Newspaper, Play, PlayCircle, Tv, Users } from 'lucide-react';
 import { ShotMap } from './ShotMap';
 import type { LiveScore, TeamStats } from '../hooks/useLiveScores';
 import {
   useMatchDetails,
   type CommentaryItem,
+  type GameInfo,
+  type GroupStandings,
   type NewsItem,
   type PastGame,
   type TeamLineup,
   type TimelineEvent,
   type VideoItem,
 } from '../hooks/useMatchDetails';
+
+/** Local e horário vindos do nosso fixture (pt-BR), p/ "Informações do jogo". */
+export interface MatchInfoData {
+  venue: string;
+  city: string;
+  country: string;
+  date: string; // "2026-06-17"
+  time: string; // "14:00" (BRT)
+}
 
 // ─── Forma recente: "DWDDW" → bolinhas coloridas ─────────────────────────────
 
@@ -463,6 +474,110 @@ function News({ items }: { items: NewsItem[] }) {
   );
 }
 
+// ─── Informações do jogo ──────────────────────────────────────────────────────
+
+const MONTHS_PT = [
+  'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+  'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
+];
+
+/** "2026-06-17" + "14:00" → "14:00, 17 de junho, 2026". */
+function formatKickoff(date: string, time: string): string | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!m) return null;
+  const [, y, mo, d] = m;
+  const month = MONTHS_PT[Number(mo) - 1];
+  if (!month) return null;
+  return `${time ? `${time}, ` : ''}${Number(d)} de ${month}, ${y}`;
+}
+
+function InfoRow({ icon, title, sub }: { icon: ReactNode; title: string; sub?: string | null }) {
+  return (
+    <div className="flex items-start gap-2">
+      <span className="mt-0.5 shrink-0 text-gray-400 dark:text-gray-500">{icon}</span>
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold text-gray-800 dark:text-gray-100">{title}</p>
+        {sub && <p className="truncate text-[10px] text-gray-500 dark:text-gray-400">{sub}</p>}
+      </div>
+    </div>
+  );
+}
+
+function MatchInfo({ info, venue, gameInfo }: { info?: MatchInfoData; venue: LiveScore['venue']; gameInfo: GameInfo }) {
+  const kickoff = info ? formatKickoff(info.date, info.time) : null;
+  const stadium = info?.venue || venue?.name || null;
+  const place = (info ? [info.city, info.country] : [venue?.city, venue?.country]).filter(Boolean).join(', ');
+  if (!kickoff && !stadium && gameInfo.attendance == null && !gameInfo.referee) return null;
+  return (
+    <div className="space-y-2.5">
+      {kickoff && <InfoRow icon={<Calendar size={13} />} title={kickoff} />}
+      {stadium && <InfoRow icon={<MapPin size={13} />} title={stadium} sub={place || null} />}
+      {gameInfo.attendance != null && (
+        <InfoRow icon={<Users size={13} />} title={`Público: ${gameInfo.attendance.toLocaleString('pt-BR')}`} />
+      )}
+      {gameInfo.referee && <InfoRow icon={<Flag size={13} />} title="Arbitragem" sub={`Árbitro: ${gameInfo.referee}`} />}
+    </div>
+  );
+}
+
+// ─── Classificação do grupo ────────────────────────────────────────────────────
+
+function GroupStandingsTable({ standings }: { standings: GroupStandings }) {
+  const gd = (v: number) => (v > 0 ? `+${v}` : String(v));
+  const th = 'px-0.5 text-center font-semibold';
+  const td = 'px-0.5 text-center tabular-nums';
+  return (
+    <div className="space-y-1.5">
+      <table className="w-full text-[10px]">
+        <thead>
+          <tr className="text-gray-400 dark:text-gray-500">
+            <th className="py-0.5 text-left font-semibold">TIME</th>
+            <th className={th}>J</th>
+            <th className={th}>V</th>
+            <th className={th}>E</th>
+            <th className={th}>D</th>
+            <th className={th}>SG</th>
+            <th className={th}>PTS</th>
+          </tr>
+        </thead>
+        <tbody>
+          {standings.rows.map((r, i) => (
+            <tr
+              key={i}
+              className={`border-t border-gray-100 dark:border-gray-700 ${
+                r.current ? 'font-bold text-gray-900 dark:text-gray-50' : 'text-gray-600 dark:text-gray-300'
+              }`}
+            >
+              <td className="py-1 pr-1">
+                <span className="flex items-center gap-1">
+                  {r.flag && <span className="shrink-0">{r.flag}</span>}
+                  <span className="truncate" title={r.name}>{r.name}</span>
+                </span>
+              </td>
+              <td className={td}>{r.played}</td>
+              <td className={td}>{r.wins}</td>
+              <td className={td}>{r.draws}</td>
+              <td className={td}>{r.losses}</td>
+              <td className={td}>{gd(r.goalDiff)}</td>
+              <td className={`${td} font-bold`}>{r.points}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {standings.fullViewLink && (
+        <a
+          href={standings.fullViewLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block text-center text-[10px] font-semibold text-blue-600 hover:underline dark:text-blue-400"
+        >
+          Tabela Completa
+        </a>
+      )}
+    </div>
+  );
+}
+
 // ─── Painel ──────────────────────────────────────────────────────────────────
 
 function Divider({ label }: { label: string }) {
@@ -474,7 +589,7 @@ function Divider({ label }: { label: string }) {
   );
 }
 
-export function MatchDetailsPanel({ live, homeName, awayName }: { live: LiveScore; homeName: string; awayName: string }) {
+export function MatchDetailsPanel({ live, homeName, awayName, info }: { live: LiveScore; homeName: string; awayName: string; info?: MatchInfoData }) {
   const details = useMatchDetails(
     live.espnEventId,
     live.homeBrand?.id ?? null,
@@ -496,6 +611,14 @@ export function MatchDetailsPanel({ live, homeName, awayName }: { live: LiveScor
           <span className="text-[9px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Forma</span>
           <FormDots form={live.awayForm} />
         </div>
+      )}
+
+      {/* Informações do jogo */}
+      {(info || live.venue?.name || details.gameInfo.attendance != null || details.gameInfo.referee) && (
+        <>
+          <Divider label="Informações do jogo" />
+          <MatchInfo info={info} venue={live.venue} gameInfo={details.gameInfo} />
+        </>
       )}
 
       {/* Linha do tempo */}
@@ -535,6 +658,14 @@ export function MatchDetailsPanel({ live, homeName, awayName }: { live: LiveScor
         <>
           <Divider label="Estatísticas" />
           <StatsBlock home={live.stats.home} away={live.stats.away} />
+        </>
+      )}
+
+      {/* Classificação do grupo */}
+      {details.standings && details.standings.rows.length > 0 && (
+        <>
+          <Divider label="Classificação Copa do Mundo" />
+          <GroupStandingsTable standings={details.standings} />
         </>
       )}
 
@@ -588,18 +719,8 @@ export function MatchDetailsPanel({ live, homeName, awayName }: { live: LiveScor
         </>
       )}
 
-      {/* Estádio + emissoras + link */}
+      {/* Emissoras + link */}
       <div className="space-y-1 pt-1">
-        {live.venue?.name && (
-          <p className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
-            <MapPin size={10} className="shrink-0" />
-            <span className="truncate">
-              {live.venue.name}
-              {live.venue.city ? ` · ${live.venue.city}` : ''}
-              {live.venue.country ? `, ${live.venue.country}` : ''}
-            </span>
-          </p>
-        )}
         {live.broadcasts.length > 0 && (
           <p className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
             <Tv size={10} className="shrink-0" />

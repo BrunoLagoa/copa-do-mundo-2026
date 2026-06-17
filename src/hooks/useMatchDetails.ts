@@ -12,6 +12,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { translateCommentary } from '../utils/translateCommentary';
+import { slugForCode } from '../data/teamCodes';
+import { ESPN_ID_BY_CODE } from '../data/espnTeams';
+import { TEAMS_BY_SLUG } from '../data/teams';
 
 const SUMMARY_BASE =
   'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary';
@@ -92,9 +95,36 @@ export interface Shot {
   text: string;
 }
 
+/** Dados de bastidor do jogo (público e arbitragem) — só a ESPN tem. */
+export interface GameInfo {
+  attendance: number | null;
+  referee: string | null;
+}
+
+/** Uma linha da classificação do grupo (já localizada em pt-BR). */
+export interface StandingRow {
+  name: string;        // nome pt-BR (ou inglês da ESPN como fallback)
+  flag: string | null; // emoji bandeira
+  current: boolean;    // é um dos dois times deste jogo (p/ destacar)
+  played: number;      // J
+  wins: number;        // V
+  draws: number;       // E
+  losses: number;      // D
+  goalDiff: number;    // SG
+  points: number;      // PTS
+}
+
+/** Classificação do grupo dos dois times + link da tabela completa. */
+export interface GroupStandings {
+  rows: StandingRow[];
+  fullViewLink: string | null;
+}
+
 export interface MatchDetails {
   timeline: TimelineEvent[];
   shots: Shot[];
+  gameInfo: GameInfo;
+  standings: GroupStandings | null;
   lineups: { home: TeamLineup | null; away: TeamLineup | null };
   commentary: CommentaryItem[];
   lastFive: { home: PastGame[]; away: PastGame[] };
@@ -328,6 +358,64 @@ function parseShots(json: any, homeId: string | null, awayId: string | null): Sh
   return out;
 }
 
+/** Público e árbitro, do `gameInfo` da ESPN. */
+function parseGameInfo(json: any): GameInfo {
+  const gi = json?.gameInfo ?? {};
+  const officials: any[] = Array.isArray(gi?.officials) ? gi.officials : [];
+  const ref = officials.find((o) =>
+    /referee/i.test(o?.position?.displayName ?? o?.position?.name ?? ''),
+  );
+  return {
+    attendance: typeof gi?.attendance === 'number' ? gi.attendance : null,
+    referee: ref?.displayName ?? officials[0]?.displayName ?? null,
+  };
+}
+
+/** ESPN id → código FIFA (reverso de ESPN_ID_BY_CODE) p/ localizar nomes. */
+const CODE_BY_ESPN_ID: Record<string, string> = Object.fromEntries(
+  Object.entries(ESPN_ID_BY_CODE).map(([code, id]) => [id, code]),
+);
+
+function standingStat(stats: any[], name: string): number {
+  const s = Array.isArray(stats) ? stats.find((x) => x?.name === name) : null;
+  const v = s ? Number(s.value ?? s.displayValue) : 0;
+  return Number.isFinite(v) ? v : 0;
+}
+
+/**
+ * Classificação do grupo deste jogo — já vem no payload `summary` (sem fetch
+ * extra), com 1 grupo (os 4 times do confronto). Nome localizado pelo id ESPN
+ * → código FIFA → slug → nome pt-BR (mesma cadeia do useStandings).
+ */
+function parseStandings(json: any, homeId: string | null, awayId: string | null): GroupStandings | null {
+  const entries: any[] = json?.standings?.groups?.[0]?.standings?.entries ?? [];
+  if (entries.length === 0) return null;
+  const rows = entries
+    .map((e) => {
+      const espnId = e?.id != null ? String(e.id) : null;
+      const code = espnId ? CODE_BY_ESPN_ID[espnId] : null;
+      const slug = code ? slugForCode(code) : null;
+      const local = slug ? TEAMS_BY_SLUG[slug] : null;
+      const stats: any[] = e?.stats ?? [];
+      const espnName = typeof e?.team === 'string' ? e.team : e?.team?.displayName;
+      const row: StandingRow = {
+        name: local?.team.name ?? espnName ?? code ?? '?',
+        flag: local?.team.flag ?? null,
+        current: Boolean(espnId && (espnId === homeId || espnId === awayId)),
+        played: standingStat(stats, 'gamesPlayed'),
+        wins: standingStat(stats, 'wins'),
+        draws: standingStat(stats, 'ties'),
+        losses: standingStat(stats, 'losses'),
+        goalDiff: standingStat(stats, 'pointDifferential'),
+        points: standingStat(stats, 'points'),
+      };
+      return { rank: standingStat(stats, 'rank'), row };
+    })
+    .sort((a, b) => a.rank - b.rank)
+    .map((x) => x.row);
+  return { rows, fullViewLink: json?.standings?.fullViewLink?.href ?? null };
+}
+
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 export function useMatchDetails(
@@ -339,6 +427,8 @@ export function useMatchDetails(
   const { enabled, live } = opts;
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
   const [shots, setShots] = useState<Shot[]>([]);
+  const [gameInfo, setGameInfo] = useState<GameInfo>({ attendance: null, referee: null });
+  const [standings, setStandings] = useState<GroupStandings | null>(null);
   const [lineups, setLineups] = useState<MatchDetails['lineups']>({ home: null, away: null });
   const [commentary, setCommentary] = useState<CommentaryItem[]>([]);
   const [lastFive, setLastFive] = useState<MatchDetails['lastFive']>({ home: [], away: [] });
@@ -368,6 +458,8 @@ export function useMatchDetails(
         if (!cancelled) {
           setTimeline(parseSummary(json, homeId, awayId));
           setShots(parseShots(json, homeId, awayId));
+          setGameInfo(parseGameInfo(json));
+          setStandings(parseStandings(json, homeId, awayId));
           setLineups(parseLineups(json, homeId, awayId));
           setCommentary(parseCommentary(json));
           setLastFive(parseLastFive(json, homeId, awayId));
@@ -394,5 +486,5 @@ export function useMatchDetails(
     };
   }, [eventId, homeId, awayId, enabled, live]);
 
-  return { timeline, shots, lineups, commentary, lastFive, headToHead, news, videos, loading, error };
+  return { timeline, shots, gameInfo, standings, lineups, commentary, lastFive, headToHead, news, videos, loading, error };
 }
