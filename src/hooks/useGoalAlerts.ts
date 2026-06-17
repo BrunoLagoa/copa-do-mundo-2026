@@ -12,7 +12,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { LiveScoresState } from './useLiveScores';
-import { playGoalSound, unlockGoalSound } from '../utils/goalSound';
+import { playGoalSound, unlockGoalSound, vibrateGoal } from '../utils/goalSound';
 
 const STORAGE_KEY = 'copa2026:goal-alerts:v1';
 
@@ -68,6 +68,7 @@ export function useGoalAlerts(live: LiveScoresState, names: NameMap): GoalAlerts
       if (active && before !== undefined && s.isLive && total > before) {
         const t = map[id];
         playGoalSound(); // som mesmo se a notificação for bloqueada
+        vibrateGoal();  // vibração em Android; iOS ignora silenciosamente
         try {
           new Notification('⚽ GOL!', {
             body: `${t.home} ${s.home} × ${s.away} ${t.away}${s.clock ? ` · ${s.clock}` : ''}`,

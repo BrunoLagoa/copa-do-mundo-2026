@@ -63,6 +63,16 @@ function playNote(
   }
 }
 
+/**
+ * Vibra o dispositivo em padrão de comemoração: "da-da-DAAAA".
+ * Só funciona em Android (Chrome/Firefox). iOS/Safari ignora silenciosamente.
+ */
+export function vibrateGoal(): void {
+  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+    navigator.vibrate([200, 100, 200, 100, 500]);
+  }
+}
+
 /** Toca a fanfarra de gol. Silencioso se o áudio não estiver disponível/destravado. */
 export function playGoalSound(): void {
   const c = getCtx();
