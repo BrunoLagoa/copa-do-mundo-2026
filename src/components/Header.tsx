@@ -5,23 +5,70 @@ import {
   type ThemeSelection,
   type Resolved,
 } from './animate-ui/effects/theme-toggler';
+import { useLiveScores } from '../hooks/useLiveScores';
+
+/** Países-sede, exibidos como chips com bandeira. */
+const HOSTS = [
+  { flag: '🇺🇸', name: 'EUA' },
+  { flag: '🇨🇦', name: 'Canadá' },
+  { flag: '🇲🇽', name: 'México' },
+];
+
+/** Fatos do torneio (estáticos) — chips de contexto. */
+const STATS = ['48 seleções', '104 jogos', '16 sedes'];
+
+/**
+ * Contagem em dias relativa ao torneio (11/jun – 19/jul 2026): "Começa em…"
+ * antes do início, "Final em…" durante, e nada após a final.
+ */
+function tournamentCountdown(): string | null {
+  const now = new Date();
+  const start = new Date('2026-06-11T00:00:00');
+  const final = new Date('2026-07-19T23:59:59');
+  const day = 86_400_000;
+  if (now < start) {
+    const d = Math.ceil((start.getTime() - now.getTime()) / day);
+    return `Começa em ${d} ${d === 1 ? 'dia' : 'dias'}`;
+  }
+  if (now <= final) {
+    const d = Math.ceil((final.getTime() - now.getTime()) / day);
+    return d <= 1 ? 'Reta final' : `Final em ${d} dias`;
+  }
+  return null;
+}
 
 export function Header() {
   const { theme, resolvedTheme, setTheme } = useTheme();
+  const { liveCount, available } = useLiveScores();
+  const countdown = tournamentCountdown();
 
   return (
-    <header className="bg-green-700 dark:bg-green-900 text-white py-10 px-4 relative">
-      <div className="text-center">
-        <h1 className="text-3xl md:text-4xl font-bold mb-2 tracking-tight">
-          Copa do Mundo 2026
-        </h1>
-        <p className="text-green-200 text-sm md:text-base">
-          11 de junho – 19 de julho &bull; Estados Unidos, Canadá e México
-        </p>
-      </div>
+    <header className="relative overflow-hidden bg-gradient-to-br from-emerald-600 via-green-700 to-green-800 text-white dark:from-emerald-950 dark:via-green-950 dark:to-gray-950">
+      {/* textura de pontos sutil */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.08]"
+        style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '22px 22px' }}
+        aria-hidden
+      />
+      {/* brilho radial suave no topo */}
+      <div
+        className="pointer-events-none absolute left-1/2 top-0 h-64 w-[120%] -translate-x-1/2 -translate-y-1/3 rounded-full bg-white/10 blur-3xl"
+        aria-hidden
+      />
 
-      {/* Theme toggle — top-right corner */}
-      <div className="absolute top-4 right-4">
+      {/* selo "ao vivo" — só quando há jogo rolando */}
+      {available && liveCount > 0 && (
+        <div className="absolute left-4 top-4 z-10 inline-flex items-center gap-1.5 rounded-full bg-red-500 px-2.5 py-1 text-xs font-bold shadow-lg shadow-red-900/30">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
+          </span>
+          {liveCount} ao vivo
+        </div>
+      )}
+
+      {/* toggle de tema (canto superior direito) */}
+      <div className="absolute right-4 top-4 z-10">
         <ThemeToggler
           theme={(theme ?? 'light') as ThemeSelection}
           resolvedTheme={(resolvedTheme ?? 'light') as Resolved}
@@ -34,7 +81,7 @@ export function Header() {
               <button
                 onClick={() => toggleTheme(isDark ? 'light' : 'dark')}
                 aria-label={isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
-                className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                className="rounded-full bg-white/10 p-2 ring-1 ring-white/15 backdrop-blur transition-colors hover:bg-white/20"
               >
                 {/* mostra o ícone do tema atual: sol = light, lua = dark */}
                 {isDark ? <Sun size={18} /> : <Moon size={18} />}
@@ -43,6 +90,61 @@ export function Header() {
           }}
         </ThemeToggler>
       </div>
+
+      {/* conteúdo centralizado */}
+      <div className="relative mx-auto max-w-4xl px-4 py-9 text-center sm:py-11">
+        {/* kicker */}
+        <div className="mb-3 flex items-center justify-center gap-2.5">
+          <span className="h-px w-6 bg-amber-300/50" />
+          <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-amber-300 sm:text-xs">
+            FIFA World Cup
+          </span>
+          <span className="h-px w-6 bg-amber-300/50" />
+        </div>
+
+        {/* título */}
+        <h1 className="text-3xl font-black tracking-tight drop-shadow-sm sm:text-4xl md:text-5xl">
+          <span className="mr-1.5">🏆</span>Copa do Mundo 2026
+        </h1>
+
+        {/* período */}
+        <p className="mt-2 text-sm font-medium text-green-100/90 sm:text-base">
+          11 de junho – 19 de julho
+        </p>
+
+        {/* chips dos anfitriões */}
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
+          {HOSTS.map((h) => (
+            <span
+              key={h.name}
+              className="inline-flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-semibold ring-1 ring-white/15"
+            >
+              <span aria-hidden>{h.flag}</span>
+              {h.name}
+            </span>
+          ))}
+        </div>
+
+        {/* estatísticas + contagem regressiva */}
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5">
+          {STATS.map((s) => (
+            <span
+              key={s}
+              className="rounded-full bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-green-100/80 ring-1 ring-white/10"
+            >
+              {s}
+            </span>
+          ))}
+          {countdown && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/15 px-2.5 py-1 text-[11px] font-bold text-amber-200 ring-1 ring-amber-300/30">
+              ⏱ {countdown}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* linha dourada (acento de campeonato) */}
+      <div className="h-[3px] w-full bg-gradient-to-r from-amber-400/0 via-amber-400 to-amber-400/0" aria-hidden />
     </header>
   );
 }
