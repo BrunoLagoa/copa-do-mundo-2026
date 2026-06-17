@@ -12,7 +12,8 @@
  * acontece sob demanda — nunca em massa.
  */
 
-import { ArrowDown, ArrowUp, ExternalLink, MapPin, Newspaper, PlayCircle, Tv } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowDown, ArrowUp, ExternalLink, MapPin, Newspaper, Play, PlayCircle, Tv } from 'lucide-react';
 import type { LiveScore, TeamStats } from '../hooks/useLiveScores';
 import {
   useMatchDetails,
@@ -89,15 +90,41 @@ const KIND_ICON: Record<TimelineEvent['kind'], string> = {
   sub: '🔁',
 };
 
-function TimelineRow({ ev }: { ev: TimelineEvent }) {
+const GOAL_KINDS: TimelineEvent['kind'][] = ['goal', 'own-goal', 'penalty'];
+
+/**
+ * Busca o replay do gol no YouTube. A ESPN não entrega o vídeo de cada gol
+ * pela API, então abrimos uma busca já montada ("time x time jogador gol")
+ * em vez de um link direto — cobre todo gol, sem custo nem backend.
+ */
+function youtubeGoalSearch(ev: TimelineEvent, homeName: string, awayName: string): string {
+  const q = `${homeName} x ${awayName} ${ev.player ?? ''} gol`.replace(/\s+/g, ' ').trim();
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+}
+
+function TimelineRow({ ev, homeName, awayName }: { ev: TimelineEvent; homeName: string; awayName: string }) {
   const isHome = ev.side === 'home';
   const isAway = ev.side === 'away';
   const tag = ev.kind === 'own-goal' ? ' (contra)' : ev.kind === 'penalty' ? ' (pênalti)' : '';
+  const isGoal = GOAL_KINDS.includes(ev.kind);
   const body = (
-    <span className="inline-flex items-center gap-1 text-[11px] text-gray-700 dark:text-gray-200">
+    <span className="inline-flex min-w-0 items-center gap-1 text-[11px] text-gray-700 dark:text-gray-200">
       <span>{KIND_ICON[ev.kind]}</span>
       <span className="font-semibold tabular-nums text-gray-500 dark:text-gray-400">{ev.clock}</span>
       <span className="truncate">{ev.player ?? ev.text}{tag}</span>
+      {isGoal && (
+        <a
+          href={youtubeGoalSearch(ev, homeName, awayName)}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Procurar o replay deste gol no YouTube"
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex shrink-0 items-center gap-0.5 rounded bg-red-50 px-1 py-0.5 text-[9px] font-bold text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
+        >
+          <Play size={9} className="fill-current" />
+          replay
+        </a>
+      )}
     </span>
   );
   return (
@@ -107,7 +134,7 @@ function TimelineRow({ ev }: { ev: TimelineEvent }) {
   );
 }
 
-function Timeline({ events, loading }: { events: TimelineEvent[]; loading: boolean }) {
+function Timeline({ events, loading, homeName, awayName }: { events: TimelineEvent[]; loading: boolean; homeName: string; awayName: string }) {
   if (loading && events.length === 0) {
     return <p className="text-center text-[11px] text-gray-400 dark:text-gray-500">Carregando lances…</p>;
   }
@@ -115,7 +142,7 @@ function Timeline({ events, loading }: { events: TimelineEvent[]; loading: boole
   return (
     <div className="space-y-1">
       {events.map((ev, i) => (
-        <TimelineRow key={i} ev={ev} />
+        <TimelineRow key={i} ev={ev} homeName={homeName} awayName={awayName} />
       ))}
     </div>
   );
@@ -246,23 +273,86 @@ function HeadToHead({ games }: { games: PastGame[] }) {
 
 // ─── Destaques (vídeos) e notícias ────────────────────────────────────────────
 
+function formatDuration(s: number | null): string | null {
+  if (!s || s <= 0) return null;
+  const m = Math.floor(s / 60);
+  const sec = Math.round(s % 60);
+  return `${m}:${String(sec).padStart(2, '0')}`;
+}
+
+function VideoRow({ v }: { v: VideoItem }) {
+  const [open, setOpen] = useState(false);
+  const dur = formatDuration(v.duration);
+
+  // Tem .mp4 público → toca dentro do app (já aberto). Bom estado final.
+  if (open && v.mp4) {
+    return (
+      <div className="space-y-1">
+        <video
+          src={v.mp4}
+          poster={v.thumbnail ?? undefined}
+          controls
+          autoPlay
+          playsInline
+          className="w-full rounded bg-black"
+        />
+        <p className="text-[11px] leading-snug text-gray-600 dark:text-gray-300">{v.headline}</p>
+      </div>
+    );
+  }
+
+  const thumb = (
+    <span className="relative flex h-9 w-16 shrink-0 items-center justify-center overflow-hidden rounded bg-gray-200 dark:bg-gray-700">
+      {v.thumbnail ? (
+        <img src={v.thumbnail} alt="" className="h-full w-full object-cover" loading="lazy" />
+      ) : (
+        <PlayCircle size={16} className="text-gray-400" />
+      )}
+      {v.mp4 && (
+        <span className="absolute inset-0 flex items-center justify-center bg-black/25">
+          <PlayCircle size={18} className="text-white drop-shadow" />
+        </span>
+      )}
+      {dur && (
+        <span className="absolute bottom-0 right-0 rounded-tl bg-black/70 px-1 text-[8px] font-bold tabular-nums text-white">
+          {dur}
+        </span>
+      )}
+    </span>
+  );
+  const label = (
+    <span className="min-w-0 text-[11px] leading-snug text-gray-700 group-hover:text-blue-600 dark:text-gray-200 dark:group-hover:text-blue-400">
+      {v.headline}
+    </span>
+  );
+
+  // Com mp4 → botão que abre o player inline. Sem mp4 → link p/ a página da ESPN.
+  if (v.mp4) {
+    return (
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setOpen(true); }}
+        className="group flex w-full items-center gap-2 text-left"
+      >
+        {thumb}
+        {label}
+      </button>
+    );
+  }
+  return (
+    <a href={v.href} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="group flex items-center gap-2">
+      {thumb}
+      {label}
+    </a>
+  );
+}
+
 function Videos({ items }: { items: VideoItem[] }) {
   if (items.length === 0) return null;
   return (
     <div className="space-y-1.5">
       {items.map((v, i) => (
-        <a key={i} href={v.href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 group">
-          {v.thumbnail ? (
-            <img src={v.thumbnail} alt="" className="h-9 w-16 shrink-0 rounded object-cover" loading="lazy" />
-          ) : (
-            <span className="flex h-9 w-16 shrink-0 items-center justify-center rounded bg-gray-200 dark:bg-gray-700">
-              <PlayCircle size={16} className="text-gray-400" />
-            </span>
-          )}
-          <span className="min-w-0 text-[11px] leading-snug text-gray-700 group-hover:text-blue-600 dark:text-gray-200 dark:group-hover:text-blue-400">
-            {v.headline}
-          </span>
-        </a>
+        <VideoRow key={i} v={v} />
       ))}
     </div>
   );
@@ -323,7 +413,7 @@ export function MatchDetailsPanel({ live, homeName, awayName }: { live: LiveScor
       {(details.timeline.length > 0 || details.loading) && (
         <>
           <Divider label="Lances" />
-          <Timeline events={details.timeline} loading={details.loading} />
+          <Timeline events={details.timeline} loading={details.loading} homeName={homeName} awayName={awayName} />
         </>
       )}
 

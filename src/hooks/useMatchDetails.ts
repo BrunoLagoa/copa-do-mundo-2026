@@ -15,7 +15,7 @@ import { translateCommentary } from '../utils/translateCommentary';
 
 const SUMMARY_BASE =
   'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary';
-const REFRESH_MS = 30_000;
+const REFRESH_MS = 10_000;
 
 export type TimelineKind = 'goal' | 'own-goal' | 'penalty' | 'yellow' | 'red' | 'sub';
 
@@ -70,8 +70,10 @@ export interface NewsItem {
 /** Vídeo de destaque. */
 export interface VideoItem {
   headline: string;
-  href: string;
+  href: string;             // página da ESPN (fallback / "abrir no ESPN")
+  mp4: string | null;       // .mp4 direto do CDN p/ tocar inline (quando houver)
   thumbnail: string | null;
+  duration: number | null;  // segundos
 }
 
 export interface MatchDetails {
@@ -220,12 +222,21 @@ function parseNews(json: any): NewsItem[] {
 function parseVideos(json: any): VideoItem[] {
   const vids: any[] = Array.isArray(json?.videos) ? json.videos : [];
   return vids
-    .map((v) => ({
-      headline: v?.headline ?? '',
-      href: v?.links?.source?.href ?? v?.links?.web?.href ?? '',
-      thumbnail: v?.thumbnail ?? null,
-    }))
-    .filter((v) => v.headline && v.href)
+    .map((v) => {
+      const source: string = v?.links?.source?.href ?? '';
+      const web: string = v?.links?.web?.href ?? '';
+      // O .mp4 do CDN da ESPN é público (CORS *, sem auth) e toca inline.
+      // Os demais links (auth/brightcove) só funcionam abrindo a página.
+      const mp4 = source.endsWith('.mp4') ? source : null;
+      return {
+        headline: v?.headline ?? '',
+        href: web || source,
+        mp4,
+        thumbnail: v?.thumbnail ?? null,
+        duration: typeof v?.duration === 'number' ? v.duration : null,
+      };
+    })
+    .filter((v) => v.headline && (v.mp4 || v.href))
     .slice(0, 4);
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */

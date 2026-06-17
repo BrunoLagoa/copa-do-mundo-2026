@@ -26,7 +26,8 @@ const ESPN_BASE =
   'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard';
 /** Range do torneio inteiro (11 jun – 19 jul 2026). */
 const TOURNAMENT_RANGE = '20260611-20260719';
-const POLL_MS = 60_000;
+const POLL_LIVE_MS = 3_000;   // com jogo ao vivo
+const POLL_IDLE_MS = 60_000;  // sem jogo ao vivo
 
 /** Estatísticas de um time num jogo (vindas da ESPN, podem faltar). */
 export interface TeamStats {
@@ -236,7 +237,7 @@ export function useLiveScores(): LiveScoresState {
   const abortRef = useRef<AbortController | null>(null);
 
   const fetchRange = useCallback(
-    async (datesParam: string, merge: boolean) => {
+    async (datesParam: string, merge: boolean): Promise<boolean> => {
       abortRef.current?.abort();
       const ctrl = new AbortController();
       abortRef.current = ctrl;
@@ -253,8 +254,10 @@ export function useLiveScores(): LiveScoresState {
         setAvailable(true);
         setLastUpdated(new Date());
         setError(false);
+        return Object.values(parsed).some((s) => s.isLive);
       } catch (err) {
         if ((err as Error).name !== 'AbortError') setError(true);
+        return false;
       } finally {
         setLoading(false);
       }
@@ -263,21 +266,41 @@ export function useLiveScores(): LiveScoresState {
   );
 
   useEffect(() => {
+    let pollTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const schedulePoll = (hasLive: boolean) => {
+      pollTimer = setTimeout(
+        () => void tick(),
+        hasLive ? POLL_LIVE_MS : POLL_IDLE_MS,
+      );
+    };
+
+    const tick = async () => {
+      if (document.visibilityState === 'visible') {
+        const hasLive = await fetchRange(todayBRTParam(), true);
+        schedulePoll(hasLive);
+      } else {
+        // aba oculta: reagendar sem fetch com intervalo longo
+        schedulePoll(false);
+      }
+    };
+
     // 1) carga inicial: torneio inteiro (preenche todos os resultados).
-    //    Deferida em macrotask p/ não rodar setState síncrono dentro do effect.
     const initial = setTimeout(() => void fetchRange(TOURNAMENT_RANGE, false), 0);
 
-    // 2) polling: só o dia de hoje, mesclando sobre a carga inicial.
-    const tick = () => {
-      if (document.visibilityState === 'visible') void fetchRange(todayBRTParam(), true);
+    // 2) polling adaptativo: 15s com jogo ao vivo, 60s sem.
+    schedulePoll(false);
+
+    const onVisible = () => {
+      if (pollTimer) clearTimeout(pollTimer);
+      void tick();
     };
-    const timer = setInterval(tick, POLL_MS);
-    document.addEventListener('visibilitychange', tick);
+    document.addEventListener('visibilitychange', onVisible);
 
     return () => {
       clearTimeout(initial);
-      clearInterval(timer);
-      document.removeEventListener('visibilitychange', tick);
+      if (pollTimer) clearTimeout(pollTimer);
+      document.removeEventListener('visibilitychange', onVisible);
       abortRef.current?.abort();
     };
   }, [fetchRange]);
