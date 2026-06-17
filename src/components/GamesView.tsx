@@ -10,7 +10,7 @@ import { useGroupScores } from '../hooks/useGroupScores';
 import { useLiveScores, type LiveScore } from '../hooks/useLiveScores';
 import { useGoalAlerts, type GoalAlertsState } from '../hooks/useGoalAlerts';
 import { MatchDetailsPanel } from './MatchDetailsPanel';
-import type { Fixture, MatchPhase } from '../types';
+import type { MatchPhase } from '../types';
 
 const ALL_MATCHES = buildMatchList();
 
@@ -414,42 +414,15 @@ function DateGroup({ date, games, cardProps }: { date: string; games: MatchEntry
   );
 }
 
-// ─── PhaseSection ─────────────────────────────────────────────────────────────
-
-function PhaseSection({ label, phase, fixtures, cardProps }: { label: string; phase: MatchPhase; fixtures: Fixture[]; cardProps: CardPropsGetter }) {
-  const matches = buildMatchList().filter((m) => m.phase === phase);
-  const byDate = groupByShortDate(matches);
-  if (byDate.length === 0) return null;
-  return (
-    <section>
-      <div className="flex items-center gap-2 mb-3">
-        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${PHASE_BADGE[phase].classes}`}>
-          {label}
-        </span>
-        <span className="text-xs text-gray-500 dark:text-gray-400">({fixtures.length} jogos)</span>
-      </div>
-      <div className="space-y-6">
-        {byDate.map(({ date, games }) => (
-          <div key={date}>
-            <h4 className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 px-1">
-              {date}
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-start">
-              {games.map((m) => (
-                <MatchCard key={m.key} match={m} {...cardProps(m)} />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 // ─── GamesView — View principal ──────────────────────────────────────────────
 
-const PAST_DATES_INITIAL = 3;
-const PAST_DATES_STEP = 3;
+// Quantas datas mostrar de início e quantas revelar a cada "Ver mais" —
+// vale p/ "Resultados anteriores" e "Próximos jogos". O Mata-mata usa 3
+// (uma data por linha tende a ter menos jogos que a fase de grupos).
+const DATES_INITIAL = 2;
+const DATES_STEP = 2;
+const KO_DATES_INITIAL = 3;
+const KO_DATES_STEP = 3;
 
 // ─── Barra de status ao vivo ─────────────────────────────────────────────────
 
@@ -544,9 +517,28 @@ export function GamesView() {
   const pastGroups = groupByShortDate([...pastGames].reverse());
   const hasAnyContent = ALL_MATCHES.length > 0;
 
-  const [visiblePastDates, setVisiblePastDates] = useState(PAST_DATES_INITIAL);
+  const [visiblePastDates, setVisiblePastDates] = useState(DATES_INITIAL);
   const visiblePastGroups = pastGroups.slice(0, visiblePastDates);
   const hasMorePast = visiblePastDates < pastGroups.length;
+
+  const [visibleUpcomingDates, setVisibleUpcomingDates] = useState(DATES_INITIAL);
+  const visibleUpcomingGroups = upcomingGroups.slice(0, visibleUpcomingDates);
+  const hasMoreUpcoming = visibleUpcomingDates < upcomingGroups.length;
+
+  // Mata-mata achatado em grupos-de-data (fase → data), p/ paginar por DATA
+  // como as outras seções, mas mantendo o cabeçalho da fase quando ela muda.
+  const koDateGroups = koPhases.flatMap((p) =>
+    groupByShortDate(ALL_MATCHES.filter((m) => m.phase === p.phase)).map((g) => ({
+      phase: p.phase,
+      label: p.label,
+      count: p.fixtures.length,
+      date: g.date,
+      games: g.games,
+    })),
+  );
+  const [visibleKoDates, setVisibleKoDates] = useState(KO_DATES_INITIAL);
+  const visibleKoGroups = koDateGroups.slice(0, visibleKoDates);
+  const hasMoreKo = visibleKoDates < koDateGroups.length;
 
   /**
    * Monta as props de cada card.
@@ -621,7 +613,7 @@ export function GamesView() {
           {hasMorePast && (
             <div className="mt-6 flex flex-col items-center gap-1">
               <button
-                onClick={() => setVisiblePastDates((n) => n + PAST_DATES_STEP)}
+                onClick={() => setVisiblePastDates((n) => n + DATES_STEP)}
                 className="px-5 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 Ver mais resultados
@@ -643,22 +635,68 @@ export function GamesView() {
             <span className="text-xs text-gray-500 dark:text-gray-400">({upcomingGames.length})</span>
           </div>
           <div className="space-y-8">
-            {upcomingGroups.map(({ date, games }) => (
+            {visibleUpcomingGroups.map(({ date, games }) => (
               <DateGroup key={date} date={date} games={games} cardProps={cardProps} />
             ))}
           </div>
+          {hasMoreUpcoming && (
+            <div className="mt-6 flex flex-col items-center gap-1">
+              <button
+                onClick={() => setVisibleUpcomingDates((n) => n + DATES_STEP)}
+                className="px-5 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                Ver mais jogos
+              </button>
+              <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                {visibleUpcomingDates} de {upcomingGroups.length} datas
+              </span>
+            </div>
+          )}
         </section>
       )}
 
-      {/* Mata-mata — por fase */}
-      {koPhases.length > 0 && (
+      {/* Mata-mata — por data, com cabeçalho de fase */}
+      {koDateGroups.length > 0 && (
         <section>
           <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-5">Mata-mata</h2>
-          <div className="space-y-8">
-            {koPhases.map((p) => (
-              <PhaseSection key={p.phase} label={p.label} phase={p.phase} fixtures={p.fixtures} cardProps={cardProps} />
-            ))}
+          <div className="space-y-6">
+            {visibleKoGroups.map((g, i) => {
+              const newPhase = i === 0 || visibleKoGroups[i - 1].phase !== g.phase;
+              return (
+                <div key={`${g.phase}-${g.date}`} className="space-y-2">
+                  {newPhase && (
+                    <div className="flex items-center gap-2 pt-2 mb-3">
+                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${PHASE_BADGE[g.phase].classes}`}>
+                        {g.label}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">({g.count} jogos)</span>
+                    </div>
+                  )}
+                  <h4 className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 px-1">
+                    {g.date}
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-start">
+                    {g.games.map((m) => (
+                      <MatchCard key={m.key} match={m} {...cardProps(m)} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
+          {hasMoreKo && (
+            <div className="mt-6 flex flex-col items-center gap-1">
+              <button
+                onClick={() => setVisibleKoDates((n) => n + KO_DATES_STEP)}
+                className="px-5 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                Ver mais jogos
+              </button>
+              <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                {visibleKoGroups.length} de {koDateGroups.length} datas
+              </span>
+            </div>
+          )}
         </section>
       )}
 

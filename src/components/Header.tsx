@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useTheme } from 'next-themes';
 import { Moon, Sun } from 'lucide-react';
 import {
@@ -56,15 +57,19 @@ export function Header() {
         aria-hidden
       />
 
-      {/* selo "ao vivo" — só quando há jogo rolando */}
+      {/* selo "ao vivo" — só quando há jogo rolando; leva para /jogos */}
       {available && liveCount > 0 && (
-        <div className="absolute left-4 top-4 z-10 inline-flex items-center gap-1.5 rounded-full bg-red-500 px-2.5 py-1 text-xs font-bold shadow-lg shadow-red-900/30">
+        <Link
+          to="/jogos"
+          aria-label={`${liveCount} ${liveCount === 1 ? 'jogo ao vivo' : 'jogos ao vivo'} — ver jogos`}
+          className="absolute left-4 top-4 z-10 inline-flex items-center gap-1.5 rounded-full bg-red-500 px-2.5 py-1 text-xs font-bold shadow-lg shadow-red-900/30 ring-1 ring-white/20 transition-transform hover:scale-105 hover:bg-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        >
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-white" />
           </span>
           {liveCount} ao vivo
-        </div>
+        </Link>
       )}
 
       {/* toggle de tema (canto superior direito) */}
