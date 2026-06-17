@@ -102,15 +102,19 @@ const TOURNAMENT = 'Copa do Mundo 2026';
  *
  * Precisão: além de "time x time autor", incluímos o minuto (desambigua vários
  * gols do mesmo jogador), o tipo (pênalti/contra) e o nome do torneio (descarta
- * jogos antigos entre as mesmas seleções). Em gol ao vivo, ordenamos por data
- * de upload (sp=CAI%3D) — o clipe recém-postado sobe ao topo em vez de afundar
- * sob vídeos antigos mais "relevantes".
+ * jogos antigos entre as mesmas seleções).
+ *
+ * Nada de filtro `&sp=...` aqui: o token de "ordenar por data de upload"
+ * (`CAI%3D`) é re-serializado pela SPA do YouTube ao abrir o link, virando o
+ * token inválido `CAI%253D` (o `%` do `%3D` é encodado de novo). Resultado: a
+ * página abre em "Nenhum resultado encontrado" e só volta ao normal ao reenviar
+ * a busca na lupa. Além disso o YouTube descontinuou esse filtro em fev/2026.
+ * A ordem por relevância já traz o clipe recém-postado no topo.
  */
 function youtubeGoalSearch(
   ev: TimelineEvent,
   homeName: string,
   awayName: string,
-  liveSort: boolean,
 ): string {
   const minute = ev.clock.replace(/[^0-9+]/g, ''); // "90'+2'" → "90+2"
   const tipo = ev.kind === 'penalty' ? 'pênalti' : ev.kind === 'own-goal' ? 'gol contra' : 'gol';
@@ -124,11 +128,10 @@ function youtubeGoalSearch(
     .join(' ')
     .replace(/\s+/g, ' ')
     .trim();
-  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
-  return liveSort ? `${url}&sp=CAI%3D` : url;
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
 }
 
-function TimelineRow({ ev, homeName, awayName, liveSort, clip }: { ev: TimelineEvent; homeName: string; awayName: string; liveSort: boolean; clip: VideoItem | null }) {
+function TimelineRow({ ev, homeName, awayName, clip }: { ev: TimelineEvent; homeName: string; awayName: string; clip: VideoItem | null }) {
   const [open, setOpen] = useState(false);
   const [failed, setFailed] = useState(false); // clip da ESPN não tocou (ex.: região)
   const isHome = ev.side === 'home';
@@ -152,7 +155,7 @@ function TimelineRow({ ev, homeName, awayName, liveSort, clip }: { ev: TimelineE
       </button>
     ) : (
       <a
-        href={youtubeGoalSearch(ev, homeName, awayName, liveSort)}
+        href={youtubeGoalSearch(ev, homeName, awayName)}
         target="_blank"
         rel="noopener noreferrer"
         title="Procurar o replay deste gol no YouTube"
@@ -218,7 +221,7 @@ function assignGoalClips(events: TimelineEvent[], videos: VideoItem[]): (VideoIt
   });
 }
 
-function Timeline({ events, loading, homeName, awayName, liveSort, videos }: { events: TimelineEvent[]; loading: boolean; homeName: string; awayName: string; liveSort: boolean; videos: VideoItem[] }) {
+function Timeline({ events, loading, homeName, awayName, videos }: { events: TimelineEvent[]; loading: boolean; homeName: string; awayName: string; videos: VideoItem[] }) {
   if (loading && events.length === 0) {
     return <p className="text-center text-[11px] text-gray-400 dark:text-gray-500">Carregando lances…</p>;
   }
@@ -227,7 +230,7 @@ function Timeline({ events, loading, homeName, awayName, liveSort, videos }: { e
   return (
     <div className="space-y-1">
       {events.map((ev, i) => (
-        <TimelineRow key={i} ev={ev} homeName={homeName} awayName={awayName} liveSort={liveSort} clip={clips[i]} />
+        <TimelineRow key={i} ev={ev} homeName={homeName} awayName={awayName} clip={clips[i]} />
       ))}
     </div>
   );
@@ -498,7 +501,7 @@ export function MatchDetailsPanel({ live, homeName, awayName }: { live: LiveScor
       {(details.timeline.length > 0 || details.loading) && (
         <>
           <Divider label="Lances" />
-          <Timeline events={details.timeline} loading={details.loading} homeName={homeName} awayName={awayName} liveSort={live.isLive} videos={details.videos} />
+          <Timeline events={details.timeline} loading={details.loading} homeName={homeName} awayName={awayName} videos={details.videos} />
         </>
       )}
 
