@@ -12,7 +12,8 @@
  * Estratégia de rede:
  *   - 1 fetch do range do torneio inteiro no mount → preenche TODOS os
  *     resultados reais (inclusive "Resultados anteriores").
- *   - polling só do dia de hoje (payload pequeno) a cada 60s → atualiza o ao vivo.
+ *   - polling adaptativo só do dia de hoje (payload pequeno): 5s com jogo ao
+ *     vivo, 60s sem → atualiza o ao vivo sem martelar a API à toa.
  *
  * Casamento jogo-da-ESPN ↔ fixture local (M1…M104): por par de códigos FIFA
  * {casa,fora}. As siglas da ESPN coincidem com os códigos de src/data/teamCodes.ts.
@@ -26,7 +27,7 @@ const ESPN_BASE =
   'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard';
 /** Range do torneio inteiro (11 jun – 19 jul 2026). */
 const TOURNAMENT_RANGE = '20260611-20260719';
-const POLL_LIVE_MS = 3_000;   // com jogo ao vivo
+const POLL_LIVE_MS = 5_000;   // com jogo ao vivo
 const POLL_IDLE_MS = 60_000;  // sem jogo ao vivo
 
 /** Estatísticas de um time num jogo (vindas da ESPN, podem faltar). */
@@ -267,38 +268,49 @@ export function useLiveScores(): LiveScoresState {
 
   useEffect(() => {
     let pollTimer: ReturnType<typeof setTimeout> | null = null;
+    let stopped = false;  // após o cleanup, não reagenda nada
+    let running = false;  // evita ticks concorrentes (refocus durante um fetch)
 
+    // Reprograma o próximo tick. Sempre limpa o anterior, então nunca há dois
+    // timers vivos — é o que prendia o ciclo no intervalo lento.
     const schedulePoll = (hasLive: boolean) => {
-      pollTimer = setTimeout(
-        () => void tick(),
-        hasLive ? POLL_LIVE_MS : POLL_IDLE_MS,
-      );
+      if (stopped) return;
+      if (pollTimer) clearTimeout(pollTimer);
+      pollTimer = setTimeout(() => void tick(), hasLive ? POLL_LIVE_MS : POLL_IDLE_MS);
     };
 
     const tick = async () => {
-      if (document.visibilityState === 'visible') {
-        const hasLive = await fetchRange(todayBRTParam(), true);
-        schedulePoll(hasLive);
-      } else {
-        // aba oculta: reagendar sem fetch com intervalo longo
+      if (running) return;
+      // aba oculta: não busca, só reagenda devagar até voltar a ficar visível.
+      if (document.visibilityState !== 'visible') {
         schedulePoll(false);
+        return;
+      }
+      running = true;
+      let hasLive = false;
+      try {
+        hasLive = await fetchRange(todayBRTParam(), true);
+      } finally {
+        running = false;
+        schedulePoll(hasLive);
       }
     };
 
-    // 1) carga inicial: torneio inteiro (preenche todos os resultados).
-    const initial = setTimeout(() => void fetchRange(TOURNAMENT_RANGE, false), 0);
+    // Carga inicial: torneio inteiro (preenche todos os resultados) e JÁ decide a
+    // cadência do polling pelo resultado — sem esperar um ciclo ocioso de 60s.
+    void (async () => {
+      const hasLive = await fetchRange(TOURNAMENT_RANGE, false);
+      schedulePoll(hasLive);
+    })();
 
-    // 2) polling adaptativo: 15s com jogo ao vivo, 60s sem.
-    schedulePoll(false);
-
+    // Ao voltar para a aba, atualiza na hora (o tick já reagenda na cadência certa).
     const onVisible = () => {
-      if (pollTimer) clearTimeout(pollTimer);
-      void tick();
+      if (document.visibilityState === 'visible') void tick();
     };
     document.addEventListener('visibilitychange', onVisible);
 
     return () => {
-      clearTimeout(initial);
+      stopped = true;
       if (pollTimer) clearTimeout(pollTimer);
       document.removeEventListener('visibilitychange', onVisible);
       abortRef.current?.abort();
