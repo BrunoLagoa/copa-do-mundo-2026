@@ -109,7 +109,7 @@ export function Header() {
 
         {/* título */}
         <h1 className="text-3xl font-black tracking-tight drop-shadow-sm sm:text-4xl md:text-5xl">
-          <span className="mr-1.5">🏆</span>Copa do Mundo 2026
+          Copa do Mundo 2026
         </h1>
 
         {/* período */}
