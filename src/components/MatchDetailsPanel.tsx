@@ -14,6 +14,7 @@
 
 import { useState } from 'react';
 import { ArrowDown, ArrowUp, ExternalLink, MapPin, Newspaper, Play, PlayCircle, Tv } from 'lucide-react';
+import { ShotMap } from './ShotMap';
 import type { LiveScore, TeamStats } from '../hooks/useLiveScores';
 import {
   useMatchDetails,
@@ -502,6 +503,22 @@ export function MatchDetailsPanel({ live, homeName, awayName }: { live: LiveScor
         <>
           <Divider label="Lances" />
           <Timeline events={details.timeline} loading={details.loading} homeName={homeName} awayName={awayName} videos={details.videos} />
+        </>
+      )}
+
+      {/* Mapa de chutes */}
+      {details.shots.length > 0 && (
+        <>
+          <Divider label="Mapa de chutes" />
+          <ShotMap
+            shots={details.shots}
+            homeName={homeName}
+            awayName={awayName}
+            homeColor={live.homeBrand?.color ?? null}
+            awayColor={live.awayBrand?.color ?? null}
+            homeAltColor={live.homeBrand?.altColor ?? null}
+            awayAltColor={live.awayBrand?.altColor ?? null}
+          />
         </>
       )}
 

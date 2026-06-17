@@ -77,8 +77,24 @@ export interface VideoItem {
   coverageType: string | null; // "Highlight" = clip do gol; "Analysis"/"News"/… = resto
 }
 
+/** Resultado de um chute (mapeado dos type.id da ESPN). */
+export type ShotResult = 'goal' | 'saved' | 'off' | 'blocked';
+
+/** Um chute para o mapa de chutes (vindo do `commentary` da ESPN). */
+export interface Shot {
+  result: ShotResult;
+  x: number;            // 0–100, normalizado para o gol atacado
+  y: number;            // 0–100, largura do campo
+  side: 'home' | 'away';
+  player: string | null;
+  clock: string;        // "23'"
+  period: number;       // 1, 2, 3 (prorrogação)…
+  text: string;
+}
+
 export interface MatchDetails {
   timeline: TimelineEvent[];
+  shots: Shot[];
   lineups: { home: TeamLineup | null; away: TeamLineup | null };
   commentary: CommentaryItem[];
   lastFive: { home: PastGame[]; away: PastGame[] };
@@ -247,6 +263,71 @@ function parseVideos(json: any): VideoItem[] {
     )
     .slice(0, 4);
 }
+/** type.id da ESPN → resultado do chute (os demais lances são ignorados). */
+const SHOT_TYPES: Record<string, ShotResult> = {
+  '70': 'goal',     // Goal
+  '106': 'saved',   // Shot On Target (no gol, sem ser gol = defendido)
+  '117': 'off',     // Shot Off Target
+  '135': 'blocked', // Shot Blocked
+};
+
+/** Nome do time de cada lado, casado pelos ids ESPN do mandante/visitante. */
+function teamNamesBySide(
+  json: any,
+  homeId: string | null,
+  awayId: string | null,
+): { home: string | null; away: string | null } {
+  const comps: any[] = json?.header?.competitions?.[0]?.competitors ?? [];
+  let home: string | null = null;
+  let away: string | null = null;
+  for (const c of comps) {
+    const id = c?.team?.id != null ? String(c.team.id) : null;
+    const name: string | null = c?.team?.displayName ?? null;
+    if (id && id === homeId) home = name;
+    else if (id && id === awayId) away = name;
+  }
+  return { home, away };
+}
+
+/**
+ * Extrai os chutes do `commentary` para o mapa de chutes. A ESPN dá, por lance,
+ * a posição em campo (`fieldPositionX/Y`, 0–100, normalizada para o gol atacado)
+ * e o tipo. No commentary o `play.team` só traz `displayName` (sem id), então o
+ * lado é casado pelo nome do time. O array repete entradas → dedup por `play.id`.
+ */
+function parseShots(json: any, homeId: string | null, awayId: string | null): Shot[] {
+  const { home: homeName, away: awayName } = teamNamesBySide(json, homeId, awayId);
+  const raw: any[] = Array.isArray(json?.commentary) ? json.commentary : [];
+  const seen = new Set<string>();
+  const out: Shot[] = [];
+  for (const c of raw) {
+    const p = c?.play;
+    const result = p ? SHOT_TYPES[String(p?.type?.id)] : undefined;
+    if (!result) continue;
+    const x = p?.fieldPositionX;
+    const y = p?.fieldPositionY;
+    if (typeof x !== 'number' || typeof y !== 'number') continue; // chute sem coordenada
+    const id = p?.id != null ? String(p.id) : `${x},${y},${p?.clock?.displayValue ?? ''}`;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const teamName: string | null = p?.team?.displayName ?? null;
+    const side: 'home' | 'away' | null =
+      teamName && teamName === homeName ? 'home' : teamName && teamName === awayName ? 'away' : null;
+    if (!side) continue;
+    out.push({
+      result,
+      x,
+      y,
+      side,
+      player: p?.participants?.[0]?.athlete?.displayName ?? null,
+      clock: p?.clock?.displayValue ?? '',
+      period: Number(p?.period?.number) || 1,
+      text: p?.text ?? '',
+    });
+  }
+  return out;
+}
+
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 export function useMatchDetails(
@@ -257,6 +338,7 @@ export function useMatchDetails(
 ): MatchDetails {
   const { enabled, live } = opts;
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
+  const [shots, setShots] = useState<Shot[]>([]);
   const [lineups, setLineups] = useState<MatchDetails['lineups']>({ home: null, away: null });
   const [commentary, setCommentary] = useState<CommentaryItem[]>([]);
   const [lastFive, setLastFive] = useState<MatchDetails['lastFive']>({ home: [], away: [] });
@@ -285,6 +367,7 @@ export function useMatchDetails(
         const json = await res.json();
         if (!cancelled) {
           setTimeline(parseSummary(json, homeId, awayId));
+          setShots(parseShots(json, homeId, awayId));
           setLineups(parseLineups(json, homeId, awayId));
           setCommentary(parseCommentary(json));
           setLastFive(parseLastFive(json, homeId, awayId));
@@ -311,5 +394,5 @@ export function useMatchDetails(
     };
   }, [eventId, homeId, awayId, enabled, live]);
 
-  return { timeline, lineups, commentary, lastFive, headToHead, news, videos, loading, error };
+  return { timeline, shots, lineups, commentary, lastFive, headToHead, news, videos, loading, error };
 }

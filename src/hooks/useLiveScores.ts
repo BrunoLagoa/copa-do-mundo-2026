@@ -41,9 +41,10 @@ export interface TeamStats {
 
 /** Identidade visual de um time vinda da ESPN. */
 export interface TeamBrand {
-  id: string | null;     // id do time na ESPN (orienta a timeline)
-  logo: string | null;   // URL do escudo/bandeira (CDN ESPN)
-  color: string | null;  // cor primária (hex sem #)
+  id: string | null;       // id do time na ESPN (orienta a timeline)
+  logo: string | null;     // URL do escudo/bandeira (CDN ESPN)
+  color: string | null;    // cor primária (hex sem #)
+  altColor: string | null; // cor alternativa (hex sem #) — usada quando a primária é clara demais
 }
 
 /** Placar ao vivo resolvido para um fixture local. */
@@ -146,6 +147,7 @@ function teamBrand(competitor: any): TeamBrand {
     id: competitor?.team?.id != null ? String(competitor.team.id) : null,
     logo: competitor?.team?.logo ?? null,
     color: competitor?.team?.color ?? null,
+    altColor: competitor?.team?.alternateColor ?? null,
   };
 }
 
