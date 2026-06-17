@@ -74,6 +74,7 @@ export interface VideoItem {
   mp4: string | null;       // .mp4 direto do CDN p/ tocar inline (quando houver)
   thumbnail: string | null;
   duration: number | null;  // segundos
+  coverageType: string | null; // "Highlight" = clip do gol; "Analysis"/"News"/… = resto
 }
 
 export interface MatchDetails {
@@ -234,9 +235,16 @@ function parseVideos(json: any): VideoItem[] {
         mp4,
         thumbnail: v?.thumbnail ?? null,
         duration: typeof v?.duration === 'number' ? v.duration : null,
+        coverageType: v?.tracking?.coverageType ?? null,
       };
     })
     .filter((v) => v.headline && (v.mp4 || v.href))
+    // Clips de gol ("Highlight") na frente: assim não são cortados pelo slice e
+    // ficam disponíveis para casar com os gols da linha do tempo.
+    .sort(
+      (a, b) =>
+        Number(b.coverageType === 'Highlight') - Number(a.coverageType === 'Highlight'),
+    )
     .slice(0, 4);
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */

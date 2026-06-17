@@ -128,47 +128,106 @@ function youtubeGoalSearch(
   return liveSort ? `${url}&sp=CAI%3D` : url;
 }
 
-function TimelineRow({ ev, homeName, awayName, liveSort }: { ev: TimelineEvent; homeName: string; awayName: string; liveSort: boolean }) {
+function TimelineRow({ ev, homeName, awayName, liveSort, clip }: { ev: TimelineEvent; homeName: string; awayName: string; liveSort: boolean; clip: VideoItem | null }) {
+  const [open, setOpen] = useState(false);
+  const [failed, setFailed] = useState(false); // clip da ESPN não tocou (ex.: região)
   const isHome = ev.side === 'home';
   const isAway = ev.side === 'away';
   const tag = ev.kind === 'own-goal' ? ' (contra)' : ev.kind === 'penalty' ? ' (pênalti)' : '';
   const isGoal = GOAL_KINDS.includes(ev.kind);
+  // Tem o vídeo do gol da própria ESPN (mp4 público) → toca inline. Senão, cai
+  // na busca pronta do YouTube (cobre todo gol, mesmo sem clip da ESPN).
+  const hasEspn = Boolean(clip?.mp4) && !failed;
+
+  const goalAction = isGoal && (
+    hasEspn ? (
+      <button
+        type="button"
+        title="Ver o gol (vídeo da ESPN)"
+        onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
+        className="inline-flex shrink-0 items-center gap-0.5 rounded bg-green-50 px-1 py-0.5 text-[9px] font-bold text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50"
+      >
+        <Play size={9} className="fill-current" />
+        gol
+      </button>
+    ) : (
+      <a
+        href={youtubeGoalSearch(ev, homeName, awayName, liveSort)}
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Procurar o replay deste gol no YouTube"
+        onClick={(e) => e.stopPropagation()}
+        className="inline-flex shrink-0 items-center gap-0.5 rounded bg-red-50 px-1 py-0.5 text-[9px] font-bold text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
+      >
+        <Play size={9} className="fill-current" />
+        replay
+      </a>
+    )
+  );
+
   const body = (
     <span className="inline-flex min-w-0 items-center gap-1 text-[11px] text-gray-700 dark:text-gray-200">
       <span>{KIND_ICON[ev.kind]}</span>
       <span className="font-semibold tabular-nums text-gray-500 dark:text-gray-400">{ev.clock}</span>
       <span className="truncate">{ev.player ?? ev.text}{tag}</span>
-      {isGoal && (
-        <a
-          href={youtubeGoalSearch(ev, homeName, awayName, liveSort)}
-          target="_blank"
-          rel="noopener noreferrer"
-          title="Procurar o replay deste gol no YouTube"
-          onClick={(e) => e.stopPropagation()}
-          className="inline-flex shrink-0 items-center gap-0.5 rounded bg-red-50 px-1 py-0.5 text-[9px] font-bold text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
-        >
-          <Play size={9} className="fill-current" />
-          replay
-        </a>
-      )}
+      {goalAction}
     </span>
   );
+
   return (
-    <div className={`flex ${isHome ? 'justify-start' : isAway ? 'justify-end' : 'justify-center'}`}>
-      {body}
+    <div className="space-y-1">
+      <div className={`flex ${isHome ? 'justify-start' : isAway ? 'justify-end' : 'justify-center'}`}>
+        {body}
+      </div>
+      {open && hasEspn && clip?.mp4 && (
+        <div className="space-y-1">
+          <video
+            src={clip.mp4}
+            poster={clip.thumbnail ?? undefined}
+            controls
+            autoPlay
+            playsInline
+            onError={() => { setOpen(false); setFailed(true); }}
+            className="w-full rounded bg-black"
+          />
+          <p className="text-[10px] leading-snug text-gray-500 dark:text-gray-400">{clip.headline}</p>
+        </div>
+      )}
     </div>
   );
 }
 
-function Timeline({ events, loading, homeName, awayName, liveSort }: { events: TimelineEvent[]; loading: boolean; homeName: string; awayName: string; liveSort: boolean }) {
+/**
+ * Casa cada gol a um clip "Highlight" da ESPN, no máximo um por gol. O match é
+ * pelo nome do autor (o displayName da timeline aparece na headline do clip,
+ * ex.: "Lionel Messi nets screamer…"). Um clip já usado não reaparece em outro
+ * gol — assim um hat-trick com 1 clip atribui o vídeo a um gol só, e os demais
+ * caem no fallback do YouTube.
+ */
+function assignGoalClips(events: TimelineEvent[], videos: VideoItem[]): (VideoItem | null)[] {
+  const highlights = videos.filter((v) => v.mp4 && v.coverageType === 'Highlight');
+  const used = new Set<VideoItem>();
+  return events.map((ev) => {
+    if (!GOAL_KINDS.includes(ev.kind) || !ev.player) return null;
+    const parts = ev.player.toLowerCase().split(/\s+/).filter((p) => p.length > 2);
+    const clip = highlights.find(
+      (v) => !used.has(v) && parts.some((p) => v.headline.toLowerCase().includes(p)),
+    );
+    if (clip) used.add(clip);
+    return clip ?? null;
+  });
+}
+
+function Timeline({ events, loading, homeName, awayName, liveSort, videos }: { events: TimelineEvent[]; loading: boolean; homeName: string; awayName: string; liveSort: boolean; videos: VideoItem[] }) {
   if (loading && events.length === 0) {
     return <p className="text-center text-[11px] text-gray-400 dark:text-gray-500">Carregando lances…</p>;
   }
   if (events.length === 0) return null;
+  const clips = assignGoalClips(events, videos);
   return (
     <div className="space-y-1">
       {events.map((ev, i) => (
-        <TimelineRow key={i} ev={ev} homeName={homeName} awayName={awayName} liveSort={liveSort} />
+        <TimelineRow key={i} ev={ev} homeName={homeName} awayName={awayName} liveSort={liveSort} clip={clips[i]} />
       ))}
     </div>
   );
@@ -439,7 +498,7 @@ export function MatchDetailsPanel({ live, homeName, awayName }: { live: LiveScor
       {(details.timeline.length > 0 || details.loading) && (
         <>
           <Divider label="Lances" />
-          <Timeline events={details.timeline} loading={details.loading} homeName={homeName} awayName={awayName} liveSort={live.isLive} />
+          <Timeline events={details.timeline} loading={details.loading} homeName={homeName} awayName={awayName} liveSort={live.isLive} videos={details.videos} />
         </>
       )}
 
