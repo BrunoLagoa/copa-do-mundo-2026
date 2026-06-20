@@ -397,7 +397,7 @@ function parseGameInfo(json: any): GameInfo {
   const gi = json?.gameInfo ?? {};
   const officials: any[] = Array.isArray(gi?.officials) ? gi.officials : [];
   const ref = officials.find((o) =>
-    /referee/i.test(o?.position?.displayName ?? o?.position?.name ?? ''),
+    /referee|[áa]rbitro/i.test(o?.position?.displayName ?? o?.position?.name ?? ''),
   );
   return {
     attendance: typeof gi?.attendance === 'number' ? gi.attendance : null,
@@ -525,13 +525,13 @@ function parseLeaders(json: any, homeId: string | null, awayId: string | null): 
   for (const t of teams) {
     const teamId = t?.team?.id != null ? String(t.team.id) : null;
     const side: 'home' | 'away' | null =
-      teamId === homeId ? 'home' : teamId === awayId ? 'away' : null;
+      teamId && teamId === homeId ? 'home' : teamId && teamId === awayId ? 'away' : null;
     const cats: any[] = Array.isArray(t?.leaders) ? t.leaders : [];
     for (const cat of cats) {
       const name = String(cat?.name ?? '');
       const top = cat?.leaders?.[0];
       if (!top) continue;
-      const num = Number(top?.value ?? top?.displayValue);
+      const num = Number(String(top?.value ?? top?.displayValue ?? '').replace('%', ''));
       if (!Number.isFinite(num) || num <= 0) continue;
       const leader: MatchLeader = {
         category: cat?.displayName || LEADER_LABELS[name] || name,

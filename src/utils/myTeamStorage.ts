@@ -18,7 +18,12 @@ export function loadMyTeam(): MyTeamState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return { ...DEFAULT_STATE, slots: {} };
-    return JSON.parse(raw) as MyTeamState;
+    const parsed = JSON.parse(raw);
+    // JSON válido porém com shape errado (null, número, array, schema antigo) → default.
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || typeof parsed.slots !== 'object') {
+      return { ...DEFAULT_STATE, slots: {} };
+    }
+    return parsed as MyTeamState;
   } catch {
     return { ...DEFAULT_STATE, slots: {} };
   }

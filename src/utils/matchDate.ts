@@ -10,12 +10,14 @@ function parseFixtureDateTime(f: Fixture): Date {
   return new Date(Date.UTC(y, m - 1, d, hh + 3, mm));
 }
 
-function toDateOnly(d: Date): number {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+/** Dia no fuso BRT (UTC-3), ex. "2026-06-20" — fronteira de dia estável em
+ *  qualquer fuso do browser (sem isso, "hoje" erra fora do horário de Brasília). */
+function brtDay(d: Date): string {
+  return new Date(d.getTime() - 3 * 3600_000).toISOString().slice(0, 10);
 }
 
 export function isDateToday(d: Date): boolean {
-  return toDateOnly(d) === toDateOnly(new Date());
+  return brtDay(d) === brtDay(new Date());
 }
 
 export function isDateFuture(d: Date): boolean {

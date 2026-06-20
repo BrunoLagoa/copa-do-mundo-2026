@@ -14,7 +14,6 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { withEspnLang } from '../utils/espn';
 import { espnIdForSlug } from '../data/espnTeams';
 
 const BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/teams';
@@ -206,8 +205,10 @@ export function useTeamProfile(slug: string | undefined): TeamProfileState {
       abortRef.current = ctrl;
       setLoading(true);
       try {
-        const reqs = [fetch(withEspnLang(`${BASE}/${id}`), { signal: ctrl.signal, cache: 'no-store' })];
-        if (withRoster) reqs.push(fetch(withEspnLang(`${BASE}/${id}/roster`), { signal: ctrl.signal, cache: 'no-store' }));
+        // SEM lang=pt: localizaria códigos de posição e a abreviação do
+        // adversário, quebrando o agrupamento por posição e o casamento.
+        const reqs = [fetch(`${BASE}/${id}`, { signal: ctrl.signal, cache: 'no-store' })];
+        if (withRoster) reqs.push(fetch(`${BASE}/${id}/roster`, { signal: ctrl.signal, cache: 'no-store' }));
         const [detailRes, rosterRes] = await Promise.all(reqs);
         if (!detailRes.ok) throw new Error(`HTTP ${detailRes.status}`);
         const detail = await detailRes.json();

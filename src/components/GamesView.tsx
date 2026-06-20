@@ -194,8 +194,9 @@ interface ScoreEditInlineProps {
 }
 
 function ScoreEditInline({ match, initialHome, initialAway, onSave, onCancel }: ScoreEditInlineProps) {
-  const [home, setHome] = useState(initialHome);
-  const [away, setAway] = useState(initialAway);
+  // String para permitir o campo vazio durante a edição (parse no salvar).
+  const [home, setHome] = useState(String(initialHome));
+  const [away, setAway] = useState(String(initialAway));
 
   return (
     <div className="px-4 pb-3 pt-2 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
@@ -215,7 +216,7 @@ function ScoreEditInline({ match, initialHome, initialAway, onSave, onCancel }: 
             min={0}
             max={99}
             value={home}
-            onChange={(e) => setHome(Math.max(0, parseInt(e.target.value, 10) || 0))}
+            onChange={(e) => setHome(e.target.value.replace(/\D/g, '').slice(0, 2))}
             className="w-10 text-center text-lg font-bold tabular-nums rounded border border-blue-400 dark:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 py-0.5"
             aria-label={`Gols ${match.homeTeam}`}
             autoFocus
@@ -226,7 +227,7 @@ function ScoreEditInline({ match, initialHome, initialAway, onSave, onCancel }: 
             min={0}
             max={99}
             value={away}
-            onChange={(e) => setAway(Math.max(0, parseInt(e.target.value, 10) || 0))}
+            onChange={(e) => setAway(e.target.value.replace(/\D/g, '').slice(0, 2))}
             className="w-10 text-center text-lg font-bold tabular-nums rounded border border-blue-400 dark:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 py-0.5"
             aria-label={`Gols ${match.awayTeam}`}
           />
@@ -239,7 +240,7 @@ function ScoreEditInline({ match, initialHome, initialAway, onSave, onCancel }: 
       </div>
       <div className="flex gap-2">
         <button
-          onClick={() => onSave(home, away)}
+          onClick={() => onSave(Number(home) || 0, Number(away) || 0)}
           className="flex-1 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors"
         >
           Salvar
