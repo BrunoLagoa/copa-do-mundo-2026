@@ -102,30 +102,38 @@ function Pitch() {
 function Marker({ s, color }: { s: Shot; color: string }) {
   const { cx, cy } = pos(s);
   const title = `${s.clock} ${s.player ?? ''} · ${RESULTS.find((r) => r.key === s.result)?.label}`.trim();
+  // Posição no atributo SVG (externo); escala do hover via CSS (interno),
+  // ancorada no próprio centro. Misturar os dois no mesmo <g> faria o CSS
+  // sobrescrever o translate → o marcador "pula" e entra em loop de hover.
   return (
-    <g transform={`translate(${cx} ${cy})`} className="cursor-pointer transition-transform hover:scale-150">
-      <title>{title}</title>
-      {/* halo branco p/ contraste em qualquer cor */}
-      <circle r={3} fill="white" opacity={0.85} />
-      {s.result === 'goal' && (
-        <>
-          <circle r={4.4} fill="none" stroke={color} strokeWidth={0.5} opacity={0.4} />
-          <circle r={2.6} fill={color} stroke="white" strokeWidth={0.5} />
-        </>
-      )}
-      {s.result === 'saved' && (
-        <>
-          <circle r={2.6} fill="none" stroke={color} strokeWidth={1} />
-          <circle r={0.9} fill={color} />
-        </>
-      )}
-      {s.result === 'off' && <circle r={2.4} fill="none" stroke={color} strokeWidth={1} />}
-      {s.result === 'blocked' && (
-        <>
-          <circle r={2.4} fill="none" stroke={color} strokeWidth={1} />
-          <line x1={-1.7} y1={-1.7} x2={1.7} y2={1.7} stroke={color} strokeWidth={1} />
-        </>
-      )}
+    <g transform={`translate(${cx} ${cy})`}>
+      <g
+        className="cursor-pointer transition-transform hover:scale-150"
+        style={{ transformBox: 'fill-box', transformOrigin: 'center' }}
+      >
+        <title>{title}</title>
+        {/* halo branco p/ contraste em qualquer cor */}
+        <circle r={3} fill="white" opacity={0.85} />
+        {s.result === 'goal' && (
+          <>
+            <circle r={4.4} fill="none" stroke={color} strokeWidth={0.5} opacity={0.4} />
+            <circle r={2.6} fill={color} stroke="white" strokeWidth={0.5} />
+          </>
+        )}
+        {s.result === 'saved' && (
+          <>
+            <circle r={2.6} fill="none" stroke={color} strokeWidth={1} />
+            <circle r={0.9} fill={color} />
+          </>
+        )}
+        {s.result === 'off' && <circle r={2.4} fill="none" stroke={color} strokeWidth={1} />}
+        {s.result === 'blocked' && (
+          <>
+            <circle r={2.4} fill="none" stroke={color} strokeWidth={1} />
+            <line x1={-1.7} y1={-1.7} x2={1.7} y2={1.7} stroke={color} strokeWidth={1} />
+          </>
+        )}
+      </g>
     </g>
   );
 }
