@@ -17,6 +17,7 @@ const PlayerSearchView = lazy(() => import('./components/PlayerSearchView').then
 const RankingsView = lazy(() => import('./components/RankingsView').then((m) => ({ default: m.RankingsView })));
 const PlayerComparatorView = lazy(() => import('./components/PlayerComparatorView').then((m) => ({ default: m.PlayerComparatorView })));
 const MyTeamView = lazy(() => import('./components/MyTeamView').then((m) => ({ default: m.MyTeamView })));
+const NewsView = lazy(() => import('./components/NewsView').then((m) => ({ default: m.NewsView })));
 
 function RouteFallback() {
   return (
@@ -72,6 +73,7 @@ function AppRoutes() {
             <Route path="/bracket" element={<BracketView />} />
             <Route path="/knockout" element={<KnockoutView />} />
             <Route path="/jogos" element={<GamesView />} />
+            <Route path="/noticias" element={<NewsView />} />
             <Route path="/busca" element={<PlayerSearchView />} />
             <Route path="/destaques" element={<RankingsView />} />
             <Route path="/comparar" element={<PlayerComparatorView />} />
