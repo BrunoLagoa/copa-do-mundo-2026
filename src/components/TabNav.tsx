@@ -6,6 +6,7 @@ const TABS = [
   { to: '/knockout',      label: 'Eliminatórias' },
   { to: '/bracket',       label: 'Simulador' },
   { to: '/jogos',         label: 'Jogos' },
+  { to: '/noticias',      label: 'Notícias' },
   { to: '/team/brasil',   label: '🇧🇷 Brasil' },
   { to: '/busca',         label: 'Busca' },
   { to: '/destaques',     label: 'Destaques' },
