@@ -15,15 +15,18 @@
 import { useState, type ReactNode } from 'react';
 import { ArrowDown, ArrowUp, Calendar, ExternalLink, Flag, MapPin, Newspaper, Play, PlayCircle, Tv, Users } from 'lucide-react';
 import { ShotMap } from './ShotMap';
+import { MatchMomentum, type MomentumMarker } from './MatchMomentum';
 import type { LiveScore, TeamStats } from '../hooks/useLiveScores';
 import {
   useMatchDetails,
   type CommentaryItem,
   type GameInfo,
   type GroupStandings,
+  type MatchLeader,
   type NewsItem,
   type PastGame,
   type TeamLineup,
+  type TeamStatRow,
   type TimelineEvent,
   type VideoItem,
 } from '../hooks/useMatchDetails';
@@ -89,6 +92,63 @@ function StatsBlock({ home, away }: { home: TeamStats; away: TeamStats }) {
       <StatBar label="Faltas" home={home.fouls} away={away.fouls} />
     </div>
   );
+}
+
+/** Estatísticas completas do boxscore (12 itens), com "ver mais". */
+function DetailedStats({ rows }: { rows: TeamStatRow[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const COLLAPSED = 6;
+  const shown = expanded ? rows : rows.slice(0, COLLAPSED);
+  return (
+    <div className="space-y-2">
+      {shown.map((r) => (
+        <StatBar key={r.label} label={r.label} home={r.home} away={r.away} suffix={r.suffix} />
+      ))}
+      {rows.length > COLLAPSED && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="w-full text-center text-[10px] font-semibold text-blue-600 hover:underline dark:text-blue-400"
+        >
+          {expanded ? 'Ver menos' : `Ver todas (${rows.length})`}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── Destaques individuais da partida ────────────────────────────────────────
+
+function MatchLeaders({ leaders }: { leaders: MatchLeader[] }) {
+  if (leaders.length === 0) return null;
+  const valueColor = (side: MatchLeader['side']) =>
+    side === 'home'
+      ? 'text-green-600 dark:text-green-400'
+      : side === 'away'
+        ? 'text-blue-600 dark:text-blue-400'
+        : 'text-gray-700 dark:text-gray-200';
+  return (
+    <div className="grid grid-cols-2 gap-1.5">
+      {leaders.map((l, i) => (
+        <div
+          key={i}
+          className="rounded-lg border border-gray-100 bg-white px-2.5 py-1.5 dark:border-gray-700 dark:bg-gray-800"
+        >
+          <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">{l.category}</p>
+          <div className="mt-0.5 flex items-baseline justify-between gap-1">
+            <span className="truncate text-[11px] font-semibold text-gray-800 dark:text-gray-100">{l.player}</span>
+            <span className={`shrink-0 text-sm font-bold tabular-nums ${valueColor(l.side)}`}>{l.value}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** "45'+2'" → 45 (minuto inteiro p/ posicionar marcadores no momentum). */
+function clockToMinute(clock: string): number {
+  const m = /(\d+)/.exec(clock || '');
+  return m ? parseInt(m[1], 10) : 0;
 }
 
 // ─── Linha do tempo de gols/cartões ──────────────────────────────────────────
@@ -602,6 +662,16 @@ export function MatchDetailsPanel({ live, homeName, awayName, info }: { live: Li
     ? `https://www.espn.com/soccer/match/_/gameId/${live.espnEventId}`
     : null;
 
+  // Gols e substituições posicionados na linha do tempo do momentum.
+  const momentumMarkers: MomentumMarker[] = details.timeline
+    .filter((e) => GOAL_KINDS.includes(e.kind) || e.kind === 'sub')
+    .map((e) => ({
+      minute: clockToMinute(e.clock),
+      side: e.side,
+      kind: GOAL_KINDS.includes(e.kind) ? ('goal' as const) : ('sub' as const),
+    }))
+    .filter((m) => m.minute > 0);
+
   return (
     <div className="space-y-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50 px-4 py-3 dark:bg-gray-800/60">
       {/* Forma recente */}
@@ -629,6 +699,31 @@ export function MatchDetailsPanel({ live, homeName, awayName, info }: { live: Li
         </>
       )}
 
+      {/* Cronologia e dinâmica (momentum) */}
+      {details.momentum.bars.length > 0 && (
+        <>
+          <Divider label="Cronologia e dinâmica do jogo" />
+          <MatchMomentum
+            bars={details.momentum.bars}
+            maxMinute={details.momentum.maxMinute}
+            halftime={details.momentum.halftime}
+            markers={momentumMarkers}
+            homeName={homeName}
+            awayName={awayName}
+            homeColor={live.homeBrand?.color ?? null}
+            awayColor={live.awayBrand?.color ?? null}
+          />
+        </>
+      )}
+
+      {/* Destaques individuais da partida */}
+      {details.leaders.length > 0 && (
+        <>
+          <Divider label="Destaques da partida" />
+          <MatchLeaders leaders={details.leaders} />
+        </>
+      )}
+
       {/* Mapa de chutes */}
       {details.shots.length > 0 && (
         <>
@@ -653,13 +748,18 @@ export function MatchDetailsPanel({ live, homeName, awayName, info }: { live: Li
         </>
       )}
 
-      {/* Estatísticas */}
-      {live.stats && (
+      {/* Estatísticas — detalhadas (boxscore) quando disponíveis, senão o resumo ao vivo */}
+      {details.boxStats.length > 0 ? (
+        <>
+          <Divider label="Estatísticas" />
+          <DetailedStats rows={details.boxStats} />
+        </>
+      ) : live.stats ? (
         <>
           <Divider label="Estatísticas" />
           <StatsBlock home={live.stats.home} away={live.stats.away} />
         </>
-      )}
+      ) : null}
 
       {/* Classificação do grupo */}
       {details.standings && details.standings.rows.length > 0 && (

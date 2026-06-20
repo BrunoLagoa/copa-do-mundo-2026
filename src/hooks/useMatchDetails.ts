@@ -121,9 +121,42 @@ export interface GroupStandings {
   fullViewLink: string | null;
 }
 
+/** Pressão acumulada de um minuto do jogo (base da cronologia/dinâmica). */
+export interface MomentumBar {
+  minute: number; // minuto absoluto do jogo (1…90+)
+  home: number;   // peso ofensivo do mandante naquele minuto
+  away: number;   // peso ofensivo do visitante
+}
+
+/** Curva de momentum derivada do `commentary` (chutes, escanteios, dribles…). */
+export interface MatchMomentum {
+  bars: MomentumBar[];
+  maxMinute: number; // último minuto com dados (≥90) → escala do eixo
+  halftime: number;  // minuto do fim do 1º tempo (marcador "INT")
+}
+
+/** Líder de uma categoria (ex.: "Finalizações — Harry Kane, 7"). */
+export interface MatchLeader {
+  category: string;             // rótulo pt-BR (ex. "Finalizações")
+  player: string;               // nome do jogador
+  value: string;                // valor exibido (ex. "7")
+  side: 'home' | 'away' | null; // lado, p/ colorir
+}
+
+/** Uma linha da comparação de estatísticas detalhadas (boxscore). */
+export interface TeamStatRow {
+  label: string;
+  home: number | null;
+  away: number | null;
+  suffix: string; // "%" ou ""
+}
+
 export interface MatchDetails {
   timeline: TimelineEvent[];
   shots: Shot[];
+  momentum: MatchMomentum;
+  leaders: MatchLeader[];
+  boxStats: TeamStatRow[];
   gameInfo: GameInfo;
   standings: GroupStandings | null;
   lineups: { home: TeamLineup | null; away: TeamLineup | null };
@@ -417,6 +450,152 @@ function parseStandings(json: any, homeId: string | null, awayId: string | null)
   return { rows, fullViewLink: json?.standings?.fullViewLink?.href ?? null };
 }
 
+// ─── Cronologia / dinâmica (momentum) ────────────────────────────────────────
+
+/** Minuto absoluto (inteiro) a partir do displayValue da ESPN ("45'+2'" → 45). */
+function clockMinute(displayValue: string): number {
+  const m = /^(\d+)/.exec(displayValue || '');
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+/** Peso ofensivo de um lance do commentary (0 = não conta para o momentum). */
+function playWeight(p: any): number {
+  const id = String(p?.type?.id ?? '');
+  if (id === '70') return 6;                       // gol
+  if (id === '106') return 3;                      // chute no gol (defendido)
+  if (id === '117' || id === '135') return 1.8;    // chute fora / bloqueado
+  const slug = String(p?.type?.type ?? '');
+  const text = String(p?.type?.text ?? '').toLowerCase();
+  if (slug.includes('corner') || text.includes('escanteio')) return 1;
+  if (slug.includes('dribble') || text.includes('drible')) return 0.6;
+  if (slug.includes('offside') || text.includes('impedimento')) return 0.5;
+  return 0;
+}
+
+/**
+ * Curva de momentum por minuto, derivada do `commentary`. Cada lance ofensivo
+ * soma peso ao seu time no minuto correspondente (acima = mandante, abaixo =
+ * visitante). O lado vem pelo nome do time (commentary não traz id), igual ao
+ * mapa de chutes.
+ */
+function parseMomentum(json: any, homeId: string | null, awayId: string | null): MatchMomentum {
+  const { home: homeName, away: awayName } = teamNamesBySide(json, homeId, awayId);
+  const raw: any[] = Array.isArray(json?.commentary) ? json.commentary : [];
+  const byMin = new Map<number, { home: number; away: number }>();
+  let maxMinute = 90;
+  let halftime = 45;
+  for (const c of raw) {
+    const p = c?.play;
+    if (!p) continue;
+    const w = playWeight(p);
+    if (w <= 0) continue;
+    const min = clockMinute(p?.clock?.displayValue ?? '');
+    if (!min) continue;
+    const name: string | null = p?.team?.displayName ?? null;
+    const side: 'home' | 'away' | null =
+      name && name === homeName ? 'home' : name && name === awayName ? 'away' : null;
+    if (!side) continue;
+    const slot = byMin.get(min) ?? { home: 0, away: 0 };
+    slot[side] += w;
+    byMin.set(min, slot);
+    if (min > maxMinute) maxMinute = min;
+    if (Number(p?.period?.number) === 1 && min > halftime && min <= 50) halftime = min;
+  }
+  const bars = Array.from(byMin.entries())
+    .map(([minute, v]) => ({ minute, home: v.home, away: v.away }))
+    .sort((a, b) => a.minute - b.minute);
+  return { bars, maxMinute, halftime };
+}
+
+// ─── Destaques individuais (leaders) ─────────────────────────────────────────
+
+const LEADER_LABELS: Record<string, string> = {
+  totalShots: 'Finalizações',
+  accuratePasses: 'Passes certos',
+  defensiveInterventions: 'Ações defensivas',
+  saves: 'Defesas',
+  goals: 'Gols',
+  goalAssists: 'Assistências',
+};
+
+/** Melhor jogador de cada categoria, somando os dois times (pega o maior valor). */
+function parseLeaders(json: any, homeId: string | null, awayId: string | null): MatchLeader[] {
+  const teams: any[] = Array.isArray(json?.leaders) ? json.leaders : [];
+  const best = new Map<string, { leader: MatchLeader; num: number }>();
+  for (const t of teams) {
+    const teamId = t?.team?.id != null ? String(t.team.id) : null;
+    const side: 'home' | 'away' | null =
+      teamId === homeId ? 'home' : teamId === awayId ? 'away' : null;
+    const cats: any[] = Array.isArray(t?.leaders) ? t.leaders : [];
+    for (const cat of cats) {
+      const name = String(cat?.name ?? '');
+      const top = cat?.leaders?.[0];
+      if (!top) continue;
+      const num = Number(top?.value ?? top?.displayValue);
+      if (!Number.isFinite(num) || num <= 0) continue;
+      const leader: MatchLeader = {
+        category: cat?.displayName || LEADER_LABELS[name] || name,
+        player: top?.athlete?.displayName ?? top?.athlete?.shortName ?? '—',
+        value: String(top?.displayValue ?? num),
+        side,
+      };
+      const cur = best.get(name);
+      if (!cur || num > cur.num) best.set(name, { leader, num });
+    }
+  }
+  return Array.from(best.values()).map((b) => b.leader);
+}
+
+// ─── Estatísticas detalhadas (boxscore) ──────────────────────────────────────
+
+const BOX_STATS: { key: string; label: string; suffix: string }[] = [
+  { key: 'possessionPct', label: 'Posse de bola', suffix: '%' },
+  { key: 'totalShots', label: 'Finalizações', suffix: '' },
+  { key: 'shotsOnTarget', label: 'Finalizações no gol', suffix: '' },
+  { key: 'wonCorners', label: 'Escanteios', suffix: '' },
+  { key: 'offsides', label: 'Impedimentos', suffix: '' },
+  { key: 'foulsCommitted', label: 'Faltas', suffix: '' },
+  { key: 'yellowCards', label: 'Cartões amarelos', suffix: '' },
+  { key: 'saves', label: 'Defesas', suffix: '' },
+  { key: 'accuratePasses', label: 'Passes certos', suffix: '' },
+  { key: 'totalTackles', label: 'Desarmes', suffix: '' },
+  { key: 'interceptions', label: 'Interceptações', suffix: '' },
+];
+
+/** {name → valor numérico} das estatísticas de um time no boxscore. */
+function statMap(team: any): Record<string, number> {
+  const stats: any[] = Array.isArray(team?.statistics) ? team.statistics : [];
+  const out: Record<string, number> = {};
+  for (const s of stats) {
+    const v = Number(String(s?.displayValue ?? s?.value ?? '').replace('%', ''));
+    if (s?.name && Number.isFinite(v)) out[s.name] = v;
+  }
+  return out;
+}
+
+/** Comparação detalhada mandante × visitante a partir do boxscore. */
+function parseBoxStats(json: any, homeId: string | null, awayId: string | null): TeamStatRow[] {
+  const teams: any[] = Array.isArray(json?.boxscore?.teams) ? json.boxscore.teams : [];
+  let home: any = null;
+  let away: any = null;
+  for (const t of teams) {
+    const id = t?.team?.id != null ? String(t.team.id) : null;
+    if (id === homeId) home = t;
+    else if (id === awayId) away = t;
+  }
+  if (!home && !away) return [];
+  const hm = statMap(home);
+  const am = statMap(away);
+  const rows: TeamStatRow[] = [];
+  for (const def of BOX_STATS) {
+    const h = def.key in hm ? hm[def.key] : null;
+    const a = def.key in am ? am[def.key] : null;
+    if (h === null && a === null) continue;
+    rows.push({ label: def.label, home: h, away: a, suffix: def.suffix });
+  }
+  return rows;
+}
+
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 export function useMatchDetails(
@@ -428,6 +607,9 @@ export function useMatchDetails(
   const { enabled, live } = opts;
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
   const [shots, setShots] = useState<Shot[]>([]);
+  const [momentum, setMomentum] = useState<MatchMomentum>({ bars: [], maxMinute: 90, halftime: 45 });
+  const [leaders, setLeaders] = useState<MatchLeader[]>([]);
+  const [boxStats, setBoxStats] = useState<TeamStatRow[]>([]);
   const [gameInfo, setGameInfo] = useState<GameInfo>({ attendance: null, referee: null });
   const [standings, setStandings] = useState<GroupStandings | null>(null);
   const [lineups, setLineups] = useState<MatchDetails['lineups']>({ home: null, away: null });
@@ -459,6 +641,9 @@ export function useMatchDetails(
         if (!cancelled) {
           setTimeline(parseSummary(json, homeId, awayId));
           setShots(parseShots(json, homeId, awayId));
+          setMomentum(parseMomentum(json, homeId, awayId));
+          setLeaders(parseLeaders(json, homeId, awayId));
+          setBoxStats(parseBoxStats(json, homeId, awayId));
           setGameInfo(parseGameInfo(json));
           setStandings(parseStandings(json, homeId, awayId));
           setLineups(parseLineups(json, homeId, awayId));
@@ -487,5 +672,5 @@ export function useMatchDetails(
     };
   }, [eventId, homeId, awayId, enabled, live]);
 
-  return { timeline, shots, gameInfo, standings, lineups, commentary, lastFive, headToHead, news, videos, loading, error };
+  return { timeline, shots, momentum, leaders, boxStats, gameInfo, standings, lineups, commentary, lastFive, headToHead, news, videos, loading, error };
 }
