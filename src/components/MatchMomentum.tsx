@@ -77,9 +77,9 @@ export function MatchMomentum({
           style={{ left: `${pct(halftime)}%` }}
         />
 
-        {/* Barras */}
+        {/* Barras (centradas no minuto, p/ alinhar com os marcadores) */}
         {bars.map((b) => {
-          const left = pct(b.minute);
+          const left = pct(b.minute) - barW / 2;
           return (
             <span key={b.minute}>
               {b.home > 0 && (
@@ -120,7 +120,7 @@ export function MatchMomentum({
             <span
               key={`${m.kind}-${m.minute}-${i}`}
               className={`absolute top-1/2 -translate-x-1/2 ${offset}`}
-              style={{ left: `${pct(m.minute)}%` }}
+              style={{ left: `${Math.min(100, pct(m.minute))}%` }}
               title={`${m.kind === 'goal' ? 'Gol' : 'Substituição'} aos ${m.minute}'`}
             >
               {m.kind === 'goal' ? (

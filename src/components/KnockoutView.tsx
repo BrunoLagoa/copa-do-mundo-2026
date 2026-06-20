@@ -42,7 +42,10 @@ function loadState(): Record<string, MatchScore> {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return {};
-    return JSON.parse(raw) as Record<string, MatchScore>;
+    const parsed = JSON.parse(raw);
+    // JSON válido porém com shape errado (null, número, array) → vazio.
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    return parsed as Record<string, MatchScore>;
   } catch {
     return {};
   }

@@ -20,7 +20,11 @@ type ScoresMap = Record<string, MatchScore>;
 function loadFromStorage(): ScoresMap {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as ScoresMap) : {};
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    // JSON válido porém com shape errado (null, número, array) → mapa vazio.
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    return parsed as ScoresMap;
   } catch {
     return {};
   }
