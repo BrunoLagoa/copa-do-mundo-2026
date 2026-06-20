@@ -14,6 +14,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { withEspnLang } from '../utils/espn';
 import { FIXTURES } from '../data/matches';
 import { slugForCode } from '../data/teamCodes';
 import { TEAMS_BY_SLUG } from '../data/teams';
@@ -229,7 +230,7 @@ export function useTournamentLeaders(): TournamentLeadersState {
     abortRef.current = ctrl;
     setLoading(true);
     try {
-      const res = await fetch(`${SCOREBOARD_URL}?dates=${TOURNAMENT_RANGE}`, {
+      const res = await fetch(withEspnLang(`${SCOREBOARD_URL}?dates=${TOURNAMENT_RANGE}`), {
         signal: ctrl.signal,
         cache: 'no-store',
       });

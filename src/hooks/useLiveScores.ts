@@ -20,6 +20,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { withEspnLang } from '../utils/espn';
 import { FIXTURES } from '../data/matches';
 import { codeForSlug } from '../data/teamCodes';
 
@@ -246,7 +247,7 @@ export function useLiveScores(): LiveScoresState {
       abortRef.current = ctrl;
       setLoading(true);
       try {
-        const res = await fetch(`${ESPN_BASE}?dates=${datesParam}`, {
+        const res = await fetch(withEspnLang(`${ESPN_BASE}?dates=${datesParam}`), {
           signal: ctrl.signal,
           cache: 'no-store',
         });

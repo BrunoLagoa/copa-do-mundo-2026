@@ -11,6 +11,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { withEspnLang } from '../utils/espn';
 import { translateCommentary } from '../utils/translateCommentary';
 import { slugForCode } from '../data/teamCodes';
 import { ESPN_ID_BY_CODE } from '../data/espnTeams';
@@ -449,7 +450,7 @@ export function useMatchDetails(
       abortRef.current = ctrl;
       setLoading(true);
       try {
-        const res = await fetch(`${SUMMARY_BASE}?event=${eventId}`, {
+        const res = await fetch(withEspnLang(`${SUMMARY_BASE}?event=${eventId}`), {
           signal: ctrl.signal,
           cache: 'no-store',
         });

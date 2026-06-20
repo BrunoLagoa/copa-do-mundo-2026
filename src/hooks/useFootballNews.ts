@@ -10,6 +10,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { withEspnLang } from '../utils/espn';
 
 const NEWS_URL =
   'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/news';
@@ -83,7 +84,7 @@ export function useFootballNews(): NewsState {
     abortRef.current = ctrl;
     setLoading(true);
     try {
-      const res = await fetch(NEWS_URL, { signal: ctrl.signal, cache: 'no-store' });
+      const res = await fetch(withEspnLang(NEWS_URL), { signal: ctrl.signal, cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setArticles(parseNews(await res.json()));
       setLastUpdated(new Date());

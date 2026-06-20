@@ -14,6 +14,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { withEspnLang } from '../utils/espn';
 import { espnIdForSlug } from '../data/espnTeams';
 import type { PosGroup } from './useTeamProfile';
 
@@ -138,7 +139,7 @@ export function useTeamLineup(slug: string | undefined): TeamLineupState {
     abortRef.current = ctrl;
     setLoading(true);
     try {
-      const schedRes = await fetch(`${BASE}/teams/${id}/schedule`, { signal: ctrl.signal, cache: 'no-store' });
+      const schedRes = await fetch(withEspnLang(`${BASE}/teams/${id}/schedule`), { signal: ctrl.signal, cache: 'no-store' });
       if (!schedRes.ok) throw new Error(`HTTP ${schedRes.status}`);
       const sched = await schedRes.json();
       /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
@@ -149,7 +150,7 @@ export function useTeamLineup(slug: string | undefined): TeamLineupState {
         setAvailable(true);
         return;
       }
-      const sumRes = await fetch(`${BASE}/summary?event=${eventId}`, { signal: ctrl.signal, cache: 'no-store' });
+      const sumRes = await fetch(withEspnLang(`${BASE}/summary?event=${eventId}`), { signal: ctrl.signal, cache: 'no-store' });
       if (!sumRes.ok) throw new Error(`HTTP ${sumRes.status}`);
       setLineup(parseLineup(await sumRes.json(), id));
       setAvailable(true);

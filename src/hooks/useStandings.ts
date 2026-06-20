@@ -11,6 +11,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { withEspnLang } from '../utils/espn';
 import { FIXTURES } from '../data/matches';
 import { codeForSlug, slugForCode } from '../data/teamCodes';
 import { TEAMS_BY_SLUG } from '../data/teams';
@@ -118,7 +119,7 @@ export function useStandings(): StandingsState {
     abortRef.current = ctrl;
     setLoading(true);
     try {
-      const res = await fetch(STANDINGS_URL, { signal: ctrl.signal, cache: 'no-store' });
+      const res = await fetch(withEspnLang(STANDINGS_URL), { signal: ctrl.signal, cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const parsed = parseStandings(await res.json());
       setByGroup(parsed);
