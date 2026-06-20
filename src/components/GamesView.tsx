@@ -4,8 +4,12 @@ import { Bell, BellRing, CheckCircle, ChevronDown, Clock, MapPin, Pencil, Radio,
 import {
   buildMatchList,
   getFixturesByPhase,
+  isFixtureFuture,
+  isFixtureToday,
   type MatchEntry,
 } from '../utils/matchDate';
+import { FIXTURES } from '../data/matches';
+import { AddToCalendarButton } from './AddToCalendarButton';
 import { useGroupScores } from '../hooks/useGroupScores';
 import { useLiveScores, type LiveScore } from '../hooks/useLiveScores';
 import { useGoalAlerts, type GoalAlertsState } from '../hooks/useGoalAlerts';
@@ -579,8 +583,19 @@ export function GamesView() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-10">
-      {/* Barra de status ao vivo — só aparece se o proxy estiver configurado */}
-      <LiveStatusBar state={live} alerts={alerts} />
+      {/* Barra de status ao vivo + exportar próximos jogos para a agenda */}
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <LiveStatusBar state={live} alerts={alerts} />
+        </div>
+        <AddToCalendarButton
+          fixtures={FIXTURES.filter((f) => isFixtureToday(f) || isFixtureFuture(f))}
+          calName="Copa do Mundo 2026"
+          filename="copa2026-jogos"
+          label="Próximos na agenda"
+          className="shrink-0"
+        />
+      </div>
 
       {/* Jogos de hoje */}
       {todayGames.length > 0 && (

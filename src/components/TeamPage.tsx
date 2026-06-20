@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, Link } from 'react-router-dom';
+import { AddToCalendarButton } from './AddToCalendarButton';
 import {
   ArrowLeft, Calendar, MapPin, Radio, Trophy, Ruler, Cake, Activity, Shirt, X,
   Weight, Globe, ShieldAlert,
@@ -903,7 +904,15 @@ export function TeamPage() {
 
       {/* ── JOGOS ── */}
       <section className="mt-8">
-        <h2 className="mb-3 text-lg font-bold text-gray-800 dark:text-gray-200">Jogos</h2>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-200">Jogos</h2>
+          <AddToCalendarButton
+            fixtures={matches}
+            calName={`${team.team.name} · Copa 2026`}
+            filename={`copa2026-${slug}`}
+            label="Adicionar à agenda"
+          />
+        </div>
         <div className="space-y-2">
           {matches.map((g) => {
             const isHome = g.homeSlug === slug;

@@ -10,6 +10,7 @@
 import { Link } from 'react-router-dom';
 import { Radio } from 'lucide-react';
 import { useStandings, type StandingRow } from '../hooks/useStandings';
+import { groupScenarios, type QualStatus } from '../utils/qualification';
 
 const GROUP_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 
@@ -60,6 +61,47 @@ function Row({ row }: { row: StandingRow }) {
   );
 }
 
+// ─── Cenário de classificação (top 2) ────────────────────────────────────────
+
+function ScenarioFooter({ rows }: { rows: StandingRow[] }) {
+  const sc = groupScenarios(rows);
+  const anyPlayed = rows.some((r) => r.played > 0);
+  const anyLeft = rows.some((r) => r.played < 3);
+  if (!anyPlayed || !anyLeft) return null; // só faz sentido com o grupo em andamento
+
+  const named = (s: QualStatus) => rows.filter((r) => sc[r.code]?.status === s);
+  const qualified = named('qualified');
+  const contention = named('contention');
+  const eliminated = named('eliminated');
+
+  return (
+    <div className="space-y-0.5 border-t border-gray-100 px-3 py-2 dark:border-gray-700">
+      <p className="text-[9px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">Cenário · top 2</p>
+      {qualified.length > 0 && (
+        <p className="flex items-start gap-1 text-[10px] text-green-700 dark:text-green-400">
+          <span>🟢</span>
+          <span><span className="font-bold">Classificado:</span> {qualified.map((r) => r.name).join(', ')}</span>
+        </p>
+      )}
+      {contention.length > 0 && (
+        <p className="flex items-start gap-1 text-[10px] text-amber-700 dark:text-amber-500">
+          <span>🟡</span>
+          <span>
+            <span className="font-bold">Em disputa:</span>{' '}
+            {contention.map((r) => `${r.name} (máx ${sc[r.code]!.maxPoints})`).join(', ')}
+          </span>
+        </p>
+      )}
+      {eliminated.length > 0 && (
+        <p className="flex items-start gap-1 text-[10px] text-red-600 dark:text-red-400">
+          <span>🔴</span>
+          <span><span className="font-bold">Sem chances:</span> {eliminated.map((r) => r.name).join(', ')}</span>
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ─── Tabela de um grupo ───────────────────────────────────────────────────────
 
 function GroupTable({ letter, rows }: { letter: string; rows: StandingRow[] | undefined }) {
@@ -91,6 +133,7 @@ function GroupTable({ letter, rows }: { letter: string; rows: StandingRow[] | un
       ) : (
         <p className="px-3 py-6 text-center text-xs text-gray-400 dark:text-gray-500">Carregando…</p>
       )}
+      {rows && rows.length > 0 && <ScenarioFooter rows={rows} />}
     </div>
   );
 }
