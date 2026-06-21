@@ -918,6 +918,7 @@ export function TeamPage() {
             const isHome = g.homeSlug === slug;
             const opponent = isHome ? g.awayTeam : g.homeTeam;
             const opponentFlag = isHome ? g.awayFlag : g.homeFlag;
+            const opponentSlug = isHome ? g.awaySlug : g.homeSlug;
             const live = getLive(g.id);
             const hs = live?.home ?? g.homeScore;
             const as = live?.away ?? g.awayScore;
@@ -939,15 +940,18 @@ export function TeamPage() {
                 <span className="w-16 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
                   {PHASE_LABEL(g)}
                 </span>
-                <div className="flex min-w-0 flex-1 items-center gap-2">
+                <Link
+                  to={`/team/${opponentSlug}`}
+                  className="flex min-w-0 flex-1 items-center gap-2 rounded-lg transition-colors hover:opacity-80"
+                >
                   <span className="text-xl leading-none">{opponentFlag}</span>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-gray-800 dark:text-gray-200">{opponent}</p>
+                    <p className="truncate text-sm font-semibold text-gray-800 hover:underline dark:text-gray-200">{opponent}</p>
                     <p className="text-[11px] text-gray-400 dark:text-gray-500">
                       {isHome ? 'em casa' : 'fora'} · {formatDate(g.date)} · {g.city}
                     </p>
                   </div>
-                </div>
+                </Link>
                 {played ? (
                   <div className="flex shrink-0 items-center gap-2">
                     {live?.isLive && (
