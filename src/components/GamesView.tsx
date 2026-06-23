@@ -449,7 +449,7 @@ function LiveStatusBar({ state, alerts }: { state: ReturnType<typeof useLiveScor
   if (!state.available) return null; // ESPN ainda não respondeu → barra some
 
   return (
-    <div className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2">
+    <div className="flex flex-col gap-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
       <div className="flex items-center gap-2 min-w-0">
         {state.error ? (
           <>
@@ -467,7 +467,7 @@ function LiveStatusBar({ state, alerts }: { state: ReturnType<typeof useLiveScor
           </>
         )}
       </div>
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center justify-between gap-2 sm:shrink-0">
         {alerts.supported && alerts.permission !== 'denied' && (
           <button
             onClick={alerts.toggle}
@@ -482,20 +482,21 @@ function LiveStatusBar({ state, alerts }: { state: ReturnType<typeof useLiveScor
             {alerts.enabled ? (
               <>
                 <BellRing size={11} />
-                <span className="hidden sm:inline">Alerta de gols</span>
+                <span>Alerta de gols</span>
                 <CheckCircle size={11} className="shrink-0" />
               </>
             ) : (
               <>
                 <Bell size={12} className="goal-bell-ring shrink-0" />
-                <span>Ativar alerta de gols</span>
+                <span className="sm:hidden">Ativar alertas</span>
+                <span className="hidden sm:inline">Ativar alerta de gols</span>
               </>
             )}
           </button>
         )}
-        <div className="flex items-center gap-1.5 text-[11px] text-gray-400 dark:text-gray-500">
+        <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] text-gray-400 dark:text-gray-500 shrink-0">
           <Radio size={11} className={state.loading ? 'animate-pulse text-green-500' : ''} />
-          <span className="tabular-nums">
+          <span className="tabular-nums whitespace-nowrap">
             {state.lastUpdated ? `atualizado ${timeAgo(state.lastUpdated)}` : 'atualizando…'}
           </span>
         </div>
@@ -584,8 +585,8 @@ export function GamesView() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-10">
       {/* Barra de status ao vivo + exportar próximos jogos para a agenda */}
-      <div className="flex items-center gap-3">
-        <div className="min-w-0 flex-1">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch sm:gap-3">
+        <div className="min-w-0 w-full sm:flex-1">
           <LiveStatusBar state={live} alerts={alerts} />
         </div>
         <AddToCalendarButton
@@ -593,7 +594,7 @@ export function GamesView() {
           calName="Copa do Mundo 2026"
           filename="copa2026-jogos"
           label="Próximos na agenda"
-          className="shrink-0"
+          className="w-full shrink-0 justify-center sm:w-auto sm:justify-start"
         />
       </div>
 
