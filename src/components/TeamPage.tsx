@@ -22,6 +22,8 @@ import { resolvePlayerPhoto, initialsFor } from '../data/playerPhoto';
 import { translateCountry } from '../utils/translateCommentary';
 import FootballPitch, { type PitchPlayer, type StartingEleven } from './FootballPitch';
 import PlayerModal from './PlayerModal';
+import { MatchupComparison } from './MatchupComparison';
+import type { LiveScore } from '../hooks/useLiveScores';
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 
@@ -286,31 +288,6 @@ function AvgCard({ label, value, suffix, color }: { label: string; value: string
   );
 }
 
-function CompareBar({ label, mine, opp, color, fmt }: {
-  label: string;
-  mine: number;
-  opp: number;
-  color: string;
-  fmt: (n: number) => string;
-}) {
-  const total = mine + opp || 1;
-  const pct = Math.round((mine / total) * 100);
-  const lead = mine >= opp;
-  return (
-    <div>
-      <div className="mb-1 flex items-center justify-between text-xs">
-        <span className={`font-extrabold tabular-nums ${lead ? '' : 'opacity-60'}`} style={{ color }}>{fmt(mine)}</span>
-        <span className="font-medium text-gray-500 dark:text-gray-400">{label}</span>
-        <span className={`font-bold tabular-nums text-gray-500 dark:text-gray-400 ${lead ? 'opacity-60' : ''}`}>{fmt(opp)}</span>
-      </div>
-      <div className="flex h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-        <div style={{ width: `${pct}%`, backgroundColor: color }} className="transition-all" />
-        <div style={{ width: `${100 - pct}%` }} className="bg-gray-400/60 dark:bg-gray-500/50" />
-      </div>
-    </div>
-  );
-}
-
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white px-2 py-2 text-center dark:border-gray-700 dark:bg-gray-800">
@@ -553,7 +530,60 @@ function EspnPlayerModal({ p, teamFlag, color, onClose }: {
   return createPortal(content, document.body);
 }
 
-/* ── Próximo jogo ────────────────────────────────────────────────────────── */
+/* ── Jogo ao vivo / próximo jogo ─────────────────────────────────────────── */
+
+function LiveMatchCallout({
+  fixture,
+  teamSlug,
+  teamFlag,
+  live,
+}: {
+  fixture: Fixture;
+  teamSlug: string;
+  teamFlag: string;
+  live: LiveScore;
+}) {
+  const isHome = fixture.homeSlug === teamSlug;
+  const opponent = isHome ? fixture.awayTeam : fixture.homeTeam;
+  const opponentFlag = isHome ? fixture.awayFlag : fixture.homeFlag;
+  const myScore = isHome ? live.home : live.away;
+  const oppScore = isHome ? live.away : live.home;
+  return (
+    <Link
+      to="/jogos"
+      className="block rounded-2xl bg-gradient-to-r from-red-600 to-red-700 p-4 text-white shadow-md transition-colors hover:from-red-700 hover:to-red-800 live-card-pulse border-2 border-red-400/50"
+    >
+      <div className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider">
+        <Radio size={12} className="animate-pulse" />
+        Jogo ao vivo
+        {live.clock && <span className="tabular-nums">· {live.clock}</span>}
+        {live.statusDetail && <span className="normal-case opacity-90">· {live.statusDetail}</span>}
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="text-2xl leading-none">{teamFlag}</span>
+          <span className="text-sm font-medium opacity-90">vs</span>
+          <span className="text-2xl leading-none">{opponentFlag}</span>
+          <span className="truncate text-base font-bold">{opponent}</span>
+        </div>
+        <div className="shrink-0 text-right">
+          <div className="text-2xl font-black tabular-nums leading-none">
+            {myScore}
+            <span className="mx-1 text-lg font-bold opacity-60">-</span>
+            {oppScore}
+          </div>
+        </div>
+      </div>
+      <div className="mt-2 flex items-center gap-3 text-xs opacity-90">
+        <span className="capitalize">{formatWeekday(fixture.date)}</span>
+        <span>·</span>
+        <span>{formatDate(fixture.date)}</span>
+        <span>·</span>
+        <span className="flex items-center gap-1"><MapPin size={11} />{fixture.city}</span>
+      </div>
+    </Link>
+  );
+}
 
 function NextMatchCallout({ fixture, teamSlug, teamFlag }: { fixture: Fixture; teamSlug: string; teamFlag: string }) {
   const isHome = fixture.homeSlug === teamSlug;
@@ -602,11 +632,17 @@ export function TeamPage() {
   const { info, players, available, loading, lastUpdated } = useTeamProfile(slug);
   const { lineup } = useTeamLineup(slug);
   const { stats, loading: statsLoading } = useTeamStats(slug);
-  const { getLive } = useLiveScores();
+  const { getLive, getEntry } = useLiveScores();
 
   const [selectedLocal, setSelectedLocal] = useState<Player | null>(null);
   const [selectedEspn, setSelectedEspn] = useState<SquadVM | null>(null);
   const [selectedFormation, setSelectedFormation] = useState<Formation>(team?.formation ?? '4-3-3');
+  const [matchupOpen, setMatchupOpen] = useState(false);
+
+  const liveMatch = matches.find((m) => getLive(m.id)?.isLive) ?? null;
+  const featuredMatch = liveMatch ?? nextMatch;
+  const featuredLive = featuredMatch ? getLive(featuredMatch.id) : null;
+  const featuredEntry = featuredMatch ? getEntry(featuredMatch.id) : null;
 
   // Quando a escalação real chega, adota a formação do último jogo (se conhecida).
   const [autoFormation, setAutoFormation] = useState<string | null>(null);
@@ -760,10 +796,32 @@ export function TeamPage() {
         </div>
       ) : null}
 
-      {/* ── PRÓXIMO JOGO ── */}
-      {nextMatch && (
+      {/* ── JOGO EM DESTAQUE (ao vivo ou próximo) ── */}
+      {featuredMatch && (
         <div className="mt-4">
-          <NextMatchCallout fixture={nextMatch} teamSlug={slug!} teamFlag={team.team.flag} />
+          {featuredLive?.isLive ? (
+            <LiveMatchCallout
+              fixture={featuredMatch}
+              teamSlug={slug!}
+              teamFlag={team.team.flag}
+              live={featuredLive}
+            />
+          ) : (
+            <NextMatchCallout fixture={featuredMatch} teamSlug={slug!} teamFlag={team.team.flag} />
+          )}
+          <MatchupComparison
+            fixture={featuredMatch}
+            teamSlug={slug!}
+            teamName={team.team.name}
+            teamFlag={team.team.flag}
+            teamColor={info?.color ?? null}
+            ourRecord={rec}
+            ourStats={stats}
+            liveEntry={featuredEntry}
+            isLive={Boolean(featuredLive?.isLive)}
+            expanded={matchupOpen}
+            onToggle={() => setMatchupOpen((v) => !v)}
+          />
         </div>
       )}
 
@@ -817,34 +875,18 @@ export function TeamPage() {
       {stats ? (
         <section className="mt-8">
           <h2 className="mb-3 flex items-center gap-2 text-lg font-bold text-gray-800 dark:text-gray-200">
-            Estatísticas
+            Estatísticas no torneio
             <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-500 dark:bg-gray-700 dark:text-gray-400">
               {stats.games} {stats.games === 1 ? 'jogo' : 'jogos'}
             </span>
             <span className="text-xs font-normal text-gray-400 dark:text-gray-500">· médias por jogo</span>
           </h2>
 
-          {/* destaques */}
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <AvgCard label="Posse de bola" value={stats.possession.toFixed(1)} suffix="%" color={colorHex ?? undefined} />
             <AvgCard label="Finalizações" value={stats.shots.toFixed(1)} color={colorHex ?? undefined} />
             <AvgCard label="Precisão de passe" value={stats.passAccuracy.toFixed(0)} suffix="%" color={colorHex ?? undefined} />
             <AvgCard label="Desarmes" value={stats.tacklesPerGame.toFixed(1)} color={colorHex ?? undefined} />
-          </div>
-
-          {/* nós × adversários */}
-          <div className="mt-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <div className="mb-3 flex items-center justify-between text-[11px] font-bold uppercase tracking-wide">
-              <span style={{ color: colorHex ?? '#16a34a' }}>{team.team.name}</span>
-              <span className="text-gray-400">Adversários</span>
-            </div>
-            <div className="space-y-3">
-              <CompareBar label="Posse de bola" mine={stats.possession} opp={stats.oppPossession} color={colorHex ?? '#16a34a'} fmt={(n) => `${n.toFixed(0)}%`} />
-              <CompareBar label="Finalizações" mine={stats.shots} opp={stats.oppShots} color={colorHex ?? '#16a34a'} fmt={(n) => n.toFixed(1)} />
-              <CompareBar label="Finalizações no gol" mine={stats.shotsOnTarget} opp={stats.oppShotsOnTarget} color={colorHex ?? '#16a34a'} fmt={(n) => n.toFixed(1)} />
-              <CompareBar label="Escanteios" mine={stats.corners} opp={stats.oppCorners} color={colorHex ?? '#16a34a'} fmt={(n) => n.toFixed(1)} />
-              <CompareBar label="Faltas cometidas" mine={stats.fouls} opp={stats.oppFouls} color={colorHex ?? '#16a34a'} fmt={(n) => n.toFixed(1)} />
-            </div>
           </div>
 
           {/* extras / disciplina */}
