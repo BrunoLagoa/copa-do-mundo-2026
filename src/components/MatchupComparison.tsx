@@ -55,16 +55,26 @@ function stripePattern(fill: string): string {
   return `repeating-linear-gradient(-45deg, ${fill}, ${fill} 3px, rgba(255,255,255,0.32) 3px, rgba(255,255,255,0.32) 6px)`;
 }
 
-/** Cor do segmento direito (adversário) — sempre listrado para padronizar todas as métricas. */
-function opponentBarFill(
+/**
+ * Segmento direito da barra.
+ * - Cores distintas → cor primária do adversário (sem listras).
+ * - Cores parecidas → cor alternativa, se distinta; senão cinza listrado.
+ */
+function resolveOpponentBar(
   leftColor: string,
   rightColor: string,
   rightAltColor: string | null | undefined,
-): string {
+): { fill: string; striped: boolean; labelColor: string } {
+  if (!colorsTooSimilar(leftColor, rightColor)) {
+    return { fill: rightColor, striped: false, labelColor: rightColor };
+  }
+
   const alt = rightAltColor ? hexColor(rightAltColor) : null;
-  if (alt && !colorsTooSimilar(leftColor, alt)) return alt;
-  if (!colorsTooSimilar(leftColor, rightColor)) return rightColor;
-  return OPP_SLATE;
+  if (alt && !colorsTooSimilar(leftColor, alt)) {
+    return { fill: alt, striped: false, labelColor: rightColor };
+  }
+
+  return { fill: OPP_SLATE, striped: true, labelColor: OPP_SLATE };
 }
 
 function DualCompareBar({
@@ -90,11 +100,10 @@ function DualCompareBar({
   const leftLeads = !isTie && left > right;
   const rightLeads = !isTie && right > left;
 
-  const oppFill = opponentBarFill(leftColor, rightColor, rightAltColor);
-  const rightBarStyle: CSSProperties = {
-    backgroundColor: oppFill,
-    backgroundImage: stripePattern(oppFill),
-  };
+  const opp = resolveOpponentBar(leftColor, rightColor, rightAltColor);
+  const rightBarStyle: CSSProperties = opp.striped
+    ? { backgroundColor: opp.fill, backgroundImage: stripePattern(opp.fill) }
+    : { backgroundColor: opp.fill };
 
   return (
     <div>
@@ -108,12 +117,12 @@ function DualCompareBar({
         <span className="font-medium text-gray-500 dark:text-gray-400">{label}</span>
         <span
           className={`font-extrabold tabular-nums ${rightLeads || isTie ? '' : 'opacity-60'}`}
-          style={{ color: oppFill }}
+          style={{ color: opp.labelColor }}
         >
           {fmt(right)}
         </span>
       </div>
-      <div className="flex h-2 gap-px overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+      <div className={`flex h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700 ${opp.striped ? 'gap-px' : ''}`}>
         <div className="transition-all" style={{ width: `${leftPct}%`, backgroundColor: leftColor }} />
         <div className="transition-all" style={{ width: `${100 - leftPct}%`, ...rightBarStyle }} />
       </div>
