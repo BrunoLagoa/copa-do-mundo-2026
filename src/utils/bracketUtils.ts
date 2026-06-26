@@ -27,6 +27,23 @@ export function collectDependents(
   return result;
 }
 
+/**
+ * Sobrepõe as seleções resolvidas pela ESPN (por matchId) ao esqueleto,
+ * mantendo o placeholder local onde a ESPN ainda não definiu o time.
+ */
+export function overlayTeams(
+  rounds: Round[],
+  teamsByMatch: Record<string, { teamA: BracketTeam | null; teamB: BracketTeam | null }>,
+): Round[] {
+  return rounds.map((round) => ({
+    ...round,
+    matches: round.matches.map((m) => {
+      const e = teamsByMatch[m.id];
+      return { ...m, teamA: e?.teamA ?? m.teamA, teamB: e?.teamB ?? m.teamB };
+    }),
+  }));
+}
+
 /** Derive effective rounds: fill QF/SF/Final slots from winners map */
 export function deriveRounds(
   rounds: Round[],

@@ -1,85 +1,57 @@
-import { useState, useEffect, useCallback } from 'react';
-import ConfirmModal from './ConfirmModal';
-import { RotateCcw } from 'lucide-react';
+import { useMemo } from 'react';
+import { RefreshCw, AlertCircle } from 'lucide-react';
 import type { BracketTeam, BracketMatch, Round } from '../types';
 import { ROUNDS } from '../data/bracket';
-import { ScoreMatchCard } from './ScoreMatchCard';
-import type { MatchScore } from './ScoreMatchCard';
+import { ResultMatchCard } from './ResultMatchCard';
+import { useKnockoutBracket } from '../hooks/useKnockoutBracket';
+import type { KnockoutMatchData } from '../hooks/useKnockoutBracket';
 import {
-  buildMatchIndex,
-  collectDependents,
   deriveRounds,
+  overlayTeams,
   buildBracketColumns,
   COLUMN_LAYOUT_PRESETS,
   COLUMN_MATCH_OFFSETS,
 } from '../utils/bracketUtils';
 
-const STORAGE_KEY = 'copa2026:eliminatoria:v1';
+// ─── ESPN → bracket ───────────────────────────────────────────────────────────
 
-// ─── derive winner from score ─────────────────────────────────────────────────
+/** Vencedor real (jogos encerrados) de cada confronto, como BracketTeam. */
+function winnersFromEspn(
+  rounds: Round[],
+  byMatchId: Record<string, KnockoutMatchData>,
+): Record<string, BracketTeam> {
+  const index: Record<string, BracketMatch> = {};
+  for (const r of rounds) for (const m of r.matches) index[m.id] = m;
 
-function resolveWinner(
-  match: BracketMatch,
-  score: MatchScore | undefined,
-): BracketTeam | null {
-  if (!score || !match.teamA || !match.teamB) return null;
-  const a = parseInt(score.goalsA, 10);
-  const b = parseInt(score.goalsB, 10);
-  if (score.goalsA === '' || score.goalsB === '' || isNaN(a) || isNaN(b)) return null;
-  if (a > b) return match.teamA;
-  if (b > a) return match.teamB;
-  // tie → need penalty winner
-  if (score.penaltyWinner === 'A') return match.teamA;
-  if (score.penaltyWinner === 'B') return match.teamB;
-  return null; // still tied, no penalty winner selected
-}
-
-const MATCH_INDEX = buildMatchIndex(ROUNDS);
-
-// ─── localStorage helpers ─────────────────────────────────────────────────────
-
-function loadState(): Record<string, MatchScore> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    // JSON válido porém com shape errado (null, número, array) → vazio.
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
-    return parsed as Record<string, MatchScore>;
-  } catch {
-    return {};
+  const winners: Record<string, BracketTeam> = {};
+  for (const [id, e] of Object.entries(byMatchId)) {
+    if (e.state !== 'post' || !e.winnerSlot) continue;
+    const m = index[id];
+    const pick = e.winnerSlot === 'A' ? m?.teamA : m?.teamB;
+    if (pick) winners[id] = pick;
   }
-}
-
-function saveState(scores: Record<string, MatchScore>) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(scores));
-  } catch {
-    // ignore storage errors
-  }
+  return winners;
 }
 
 // ─── ScoreRoundColumn ─────────────────────────────────────────────────────────
 
-interface ScoreRoundColumnProps {
+interface ResultRoundColumnProps {
   round: Round;
-  scores: Record<string, MatchScore>;
+  byMatchId: Record<string, KnockoutMatchData>;
   winners: Record<string, BracketTeam>;
-  onScoreChange: (matchId: string, score: MatchScore) => void;
   topOffsetClassName?: string;
   matchesGapClassName?: string;
   matchOffsetClassNames?: string[];
 }
 
-function ScoreRoundColumn({
+function ResultRoundColumn({
   round,
-  scores,
+  byMatchId,
   winners,
-  onScoreChange,
   topOffsetClassName = '',
   matchesGapClassName = 'gap-3',
   matchOffsetClassNames = [],
-}: ScoreRoundColumnProps) {
+}: ResultRoundColumnProps) {
   const isFinalRound = round.id.includes('final') || round.label.toLowerCase() === 'final';
   const columnClassName = isFinalRound
     ? 'flex flex-col gap-2 w-[240px]'
@@ -93,11 +65,10 @@ function ScoreRoundColumn({
       <div className={`flex flex-col justify-start ${matchesGapClassName} ${topOffsetClassName}`}>
         {round.matches.map((match, index) => (
           <div key={match.id} className={matchOffsetClassNames[index] ?? ''}>
-            <ScoreMatchCard
+            <ResultMatchCard
               match={match}
-              score={scores[match.id] ?? { goalsA: '', goalsB: '', penaltyWinner: null }}
+              result={byMatchId[match.id]}
               winnerTeam={winners[match.id] ?? null}
-              onScoreChange={onScoreChange}
               isFinal={isFinalRound}
             />
           </div>
@@ -110,101 +81,66 @@ function ScoreRoundColumn({
 // ─── KnockoutView ───────────────────────────────────────────────────────────
 
 export function KnockoutView() {
-  const [scores, setScores] = useState<Record<string, MatchScore>>(loadState);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const { available, byMatchId, liveCount, lastUpdated, error } = useKnockoutBracket();
 
-  // Persist whenever scores change
-  useEffect(() => {
-    saveState(scores);
-  }, [scores]);
-
-  // Derive winners from scores, propagating through rounds
-  const derivedWinners = useCallback(
-    (currentScores: Record<string, MatchScore>, derivedRoundsData: Round[]): Record<string, BracketTeam> => {
-      const winners: Record<string, BracketTeam> = {};
-      for (const round of derivedRoundsData) {
-        for (const match of round.matches) {
-          const winner = resolveWinner(match, currentScores[match.id]);
-          if (winner) winners[match.id] = winner;
-        }
-      }
-      return winners;
-    },
-    [],
-  );
-
-  function handleScoreChange(matchId: string, score: MatchScore) {
-    setScores((prev) => {
-      const next = { ...prev, [matchId]: score };
-
-      // When a score changes, clear all downstream scores (winner may have changed)
-      const dependents = collectDependents(matchId, MATCH_INDEX).slice(1); // exclude self
-      for (const depId of dependents) {
-        delete next[depId];
-      }
-      return next;
-    });
-  }
-
-  function handleReset() {
-    setShowConfirm(true);
-  }
-
-  function confirmReset() {
-    setScores({});
-    setShowConfirm(false);
-  }
-
-  // We need multiple passes to propagate winners into derived matches
-  // Pass 1: base rounds
-  const pass1Rounds = deriveRounds(ROUNDS, derivedWinners(scores, ROUNDS));
-  // Pass 2: now the QF/SF/Final slots are filled; re-derive
-  const pass2Winners = derivedWinners(scores, pass1Rounds);
-  const pass2Rounds = deriveRounds(pass1Rounds, pass2Winners);
-  const pass3Winners = derivedWinners(scores, pass2Rounds);
-  const pass3Rounds = deriveRounds(pass2Rounds, pass3Winners);
-  // Merge all winner passes
-  const allWinners: Record<string, BracketTeam> = {
-    ...derivedWinners(scores, ROUNDS),
-    ...pass2Winners,
-    ...pass3Winners,
-  };
-
-  const displayColumns = buildBracketColumns(pass3Rounds);
-
-  const hasAnyScore = Object.values(scores).some(
-    (s) => s.goalsA !== '' || s.goalsB !== '',
-  );
+  // Monta o quadro efetivo: injeta as seleções da ESPN e propaga os vencedores
+  // reais rodada a rodada (ro32 → final). A ESPN é a fonte da verdade — por isso
+  // re-injetamos os times dela a cada passo, sobrepondo a propagação interna.
+  const { displayColumns, allWinners } = useMemo(() => {
+    let rounds = overlayTeams(ROUNDS, byMatchId);
+    let winners: Record<string, BracketTeam> = {};
+    for (let pass = 0; pass < 5; pass++) {
+      winners = winnersFromEspn(rounds, byMatchId);
+      rounds = overlayTeams(deriveRounds(rounds, winners), byMatchId);
+    }
+    return { displayColumns: buildBracketColumns(rounds), allWinners: winners };
+  }, [byMatchId]);
 
   return (
-    <>
     <section className="px-2 md:px-4 py-4 md:py-5">
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 dark:text-blue-200 dark:bg-blue-900/30 dark:border-blue-800 rounded-lg px-3 py-2 flex-1">
-          ⚽ Acompanhamento real — insira os placares para registrar os resultados. O vencedor avança automaticamente. Em caso de empate, escolha o vencedor nos pênaltis.
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 dark:text-blue-200 dark:bg-blue-900/30 dark:border-blue-800 rounded-lg px-3 py-2 flex-1 min-w-[12rem]">
+          ⚽ Quadro oficial — confrontos, placares e classificados atualizados ao vivo.
+          O vencedor avança automaticamente.
         </p>
-        {hasAnyScore && (
-          <button
-            type="button"
-            onClick={handleReset}
-            title="Limpar todos os placares"
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-lg bg-white dark:bg-gray-900 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors shrink-0"
-          >
-            <RotateCcw size={13} />
-            Limpar
-          </button>
-        )}
+        <span className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 shrink-0">
+          {error && !available ? (
+            <>
+              <AlertCircle size={13} className="text-amber-500" />
+              Sem conexão com a ESPN
+            </>
+          ) : liveCount > 0 ? (
+            <>
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-red-600" />
+              </span>
+              <span className="font-semibold text-red-600 dark:text-red-400">
+                {liveCount} ao vivo
+              </span>
+            </>
+          ) : (
+            <>
+              <RefreshCw size={13} className={available ? '' : 'animate-spin'} />
+              {lastUpdated
+                ? `Atualizado ${lastUpdated.toLocaleTimeString('pt-BR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}`
+                : 'Carregando…'}
+            </>
+          )}
+        </span>
       </div>
 
       <div className="overflow-x-auto pb-2">
         <div className="flex gap-3 w-max mx-auto">
           {displayColumns.map((round, index) => (
-            <ScoreRoundColumn
+            <ResultRoundColumn
               key={round.id}
               round={round}
-              scores={scores}
+              byMatchId={byMatchId}
               winners={allWinners}
-              onScoreChange={handleScoreChange}
               topOffsetClassName={COLUMN_LAYOUT_PRESETS[index]?.topOffset}
               matchesGapClassName={COLUMN_LAYOUT_PRESETS[index]?.gap}
               matchOffsetClassNames={[...(COLUMN_MATCH_OFFSETS[index] ?? [])]}
@@ -213,17 +149,5 @@ export function KnockoutView() {
         </div>
       </div>
     </section>
-
-      {showConfirm && (
-        <ConfirmModal
-          title="Limpar todos os placares"
-          message="Tem certeza? Todos os placares e resultados serão apagados. Essa ação não pode ser desfeita."
-          confirmLabel="Limpar tudo"
-          cancelLabel="Cancelar"
-          onConfirm={confirmReset}
-          onCancel={() => setShowConfirm(false)}
-        />
-      )}
-    </>
   );
 }

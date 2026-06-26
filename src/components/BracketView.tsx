@@ -1,137 +1,178 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Check, Share2, Trash2 } from 'lucide-react';
-import type { BracketTeam } from '../types';
+import { Check, Share2, Trash2, RefreshCw } from 'lucide-react';
+import type { BracketTeam, BracketMatch, Round } from '../types';
 import { ROUNDS } from '../data/bracket';
 import { RoundColumn } from './RoundColumn';
 import {
-  buildMatchIndex,
   collectDependents,
   deriveRounds,
+  overlayTeams,
   buildBracketColumns,
   COLUMN_LAYOUT_PRESETS,
   COLUMN_MATCH_OFFSETS,
 } from '../utils/bracketUtils';
+import { useKnockoutBracket } from '../hooks/useKnockoutBracket';
+import type { KnockoutMatchData } from '../hooks/useKnockoutBracket';
 import { encodeState, decodeState } from '../utils/shareState';
 
-const MATCH_INDEX = buildMatchIndex(ROUNDS);
+/**
+ * Simulador de palpite. Parte do quadro REAL da ESPN: as seleções já
+ * classificadas preenchem os confrontos, e os vencedores de jogos encerrados
+ * vêm pré-marcados como palpite inicial. Toda escolha é editável — o palpite
+ * do usuário (por nome do time) sobrepõe o resultado real; ao divergir, as
+ * rodadas seguintes voltam a ser projeção livre.
+ */
+
+/** Palpite do usuário: matchId → NOME do time escolhido (robusto a re-render/URL). */
+type Picks = Record<string, string>;
 
 /**
- * Reconstrói o mapa de vencedores (matchId → BracketTeam) a partir do mapa
- * compacto matchId → nome do time. Propaga rodada a rodada: a cada passo,
- * deriva os confrontos atuais e fixa os vencedores cujo nome bate, até estabilizar.
+ * Vencedor efetivo de um confronto: palpite do usuário tem prioridade; senão,
+ * o resultado real da ESPN — mas só enquanto o time vencedor ainda estiver no
+ * confronto (após uma divergência a montante, o resultado real "sai do caminho").
  */
-function rebuildWinners(saved: Record<string, string>): Record<string, BracketTeam> {
-  const winners: Record<string, BracketTeam> = {};
-  for (let pass = 0; pass < 12; pass++) {
-    let changed = false;
-    for (const round of deriveRounds(ROUNDS, winners)) {
-      for (const m of round.matches) {
-        const name = saved[m.id];
-        if (!name || winners[m.id]) continue;
-        const pick = m.teamA?.name === name ? m.teamA : m.teamB?.name === name ? m.teamB : null;
-        if (pick) {
-          winners[m.id] = pick;
-          changed = true;
-        }
-      }
-    }
-    if (!changed) break;
-  }
-  return winners;
-}
+function pickWinner(
+  m: BracketMatch,
+  e: KnockoutMatchData | undefined,
+  picks: Picks,
+): BracketTeam | null {
+  const present = (name: string | undefined): BracketTeam | null =>
+    !name ? null : m.teamA?.name === name ? m.teamA : m.teamB?.name === name ? m.teamB : null;
 
-/** Mapa de vencedores → forma compacta (matchId → nome) para a URL. */
-function toNames(winners: Record<string, BracketTeam>): Record<string, string> {
-  return Object.fromEntries(Object.entries(winners).map(([id, t]) => [id, t.name]));
+  const userPick = present(picks[m.id]);
+  if (userPick) return userPick;
+
+  if (e?.state === 'post' && e.winnerSlot) {
+    const realWinner = e.winnerSlot === 'A' ? e.teamA : e.teamB;
+    return present(realWinner?.name);
+  }
+  return null;
 }
 
 export function BracketView() {
   const [searchParams, setSearchParams] = useSearchParams();
-  // Palpite vindo de um link compartilhado (?b=...), reconstruído 1x no load.
-  const initialWinners = useMemo<Record<string, BracketTeam>>(() => {
+  const { byMatchId, available, liveCount, lastUpdated } = useKnockoutBracket();
+
+  // Palpite manual (também restaurado de um link ?b=…). Só o que o usuário
+  // escolheu — a realidade entra como camada-base no cálculo efetivo.
+  const initialPicks = useMemo<Picks>(() => {
     const b = searchParams.get('b');
-    if (!b) return {};
-    const names = decodeState<Record<string, string>>(b);
-    return names ? rebuildWinners(names) : {};
+    return (b && decodeState<Picks>(b)) || {};
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const [winners, setWinners] = useState<Record<string, BracketTeam>>(initialWinners);
+  const [picks, setPicks] = useState<Picks>(initialPicks);
   const [copied, setCopied] = useState(false);
 
-  const pickCount = Object.keys(winners).length;
+  // Quadro efetivo: base = times reais da ESPN; propaga vencedores (palpite +
+  // resultado real) rodada a rodada. A propagação SOBREPÕE a base da ESPN nos
+  // slots futuros — por isso o palpite do usuário "manda" daí pra frente.
+  const { displayColumns, winners, matchIndex } = useMemo(() => {
+    const base = overlayTeams(ROUNDS, byMatchId);
+    let rounds: Round[] = base;
+    let w: Record<string, BracketTeam> = {};
+    for (let pass = 0; pass < 6; pass++) {
+      const next: Record<string, BracketTeam> = {};
+      for (const round of rounds) {
+        for (const m of round.matches) {
+          const t = pickWinner(m, byMatchId[m.id], picks);
+          if (t) next[m.id] = t;
+        }
+      }
+      w = next;
+      rounds = deriveRounds(base, w);
+    }
+    const index: Record<string, BracketMatch> = {};
+    for (const r of rounds) for (const m of r.matches) index[m.id] = m;
+    return { displayColumns: buildBracketColumns(rounds), winners: w, matchIndex: index };
+  }, [byMatchId, picks]);
+
+  const pickCount = Object.keys(picks).length;
 
   async function handleShare() {
+    // Compartilha o quadro como exibido (palpite + realidade) → o destinatário
+    // vê o mesmo bracket mesmo antes da ESPN carregar para ele.
+    const names = Object.fromEntries(Object.entries(winners).map(([id, t]) => [id, t.name]));
     const url = new URL(window.location.href);
-    url.searchParams.set('b', encodeState(toNames(winners)));
+    url.searchParams.set('b', encodeState(names));
     try {
       await navigator.clipboard.writeText(url.toString());
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // clipboard bloqueado → ao menos reflete o palpite na URL atual
-      setSearchParams({ b: encodeState(toNames(winners)) });
+      setSearchParams({ b: encodeState(names) });
     }
   }
 
   function handleClear() {
-    setWinners({});
+    // Volta ao baseline real (limpa só os palpites manuais).
+    setPicks({});
     searchParams.delete('b');
     setSearchParams(searchParams);
   }
 
   function handleSelectWinner(matchId: string, team: BracketTeam) {
-    setWinners((prev) => {
+    setPicks((prev) => {
       const next = { ...prev };
+      const dependents = collectDependents(matchId, matchIndex);
 
-      // If same winner clicked again, deselect
-      if (next[matchId]?.name === team.name) {
-        const toRemove = collectDependents(matchId, MATCH_INDEX);
-        for (const id of toRemove) delete next[id];
+      // Clicar no vencedor já escolhido → desfaz o palpite (e os de baixo).
+      if (next[matchId] === team.name) {
+        for (const id of dependents) delete next[id];
         return next;
       }
-
-      // Set winner, then reset all downstream (not the match itself)
-      const dependents = collectDependents(matchId, MATCH_INDEX);
-      // Remove dependents excluding the match itself (we'll set it below)
-      for (const id of dependents) {
-        if (id !== matchId) delete next[id];
-      }
-      next[matchId] = team;
+      // Define o palpite e zera os palpites a jusante (o caminho mudou).
+      for (const id of dependents) if (id !== matchId) delete next[id];
+      next[matchId] = team.name;
       return next;
     });
   }
-
-  const derivedRounds = deriveRounds(ROUNDS, winners);
-  const displayColumns = buildBracketColumns(derivedRounds);
 
   return (
     <section className="px-2 md:px-4 py-4 md:py-5">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
         <p className="flex-1 min-w-[12rem] text-xs text-amber-700 bg-amber-50 border border-amber-200 dark:text-amber-200 dark:bg-amber-900/30 dark:border-amber-800 rounded-lg px-3 py-2">
-          ⚠ Projeção — confrontos sujeitos a alteração após fase de grupos (jul/2026).
-          Clique em um time para avançá-lo na chave.
+          🔮 Simulador — começa com os classificados reais e resultados já decididos (ESPN).
+          Clique em um time para palpitar; sua escolha sobrepõe o resultado real.
         </p>
-        {pickCount > 0 && (
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={handleShare}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-green-700"
-            >
-              {copied ? <Check size={14} /> : <Share2 size={14} />}
-              {copied ? 'Link copiado!' : 'Compartilhar palpite'}
-            </button>
-            <button
-              type="button"
-              onClick={handleClear}
-              title="Limpar palpite"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs font-semibold text-gray-600 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-            >
-              <Trash2 size={14} />
-            </button>
-          </div>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="hidden sm:flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
+            {liveCount > 0 ? (
+              <>
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-red-600" />
+                </span>
+                <span className="font-semibold text-red-600 dark:text-red-400">{liveCount} ao vivo</span>
+              </>
+            ) : available && lastUpdated ? (
+              <>
+                <RefreshCw size={12} />
+                {`Real ${lastUpdated.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`}
+              </>
+            ) : null}
+          </span>
+          {pickCount > 0 && (
+            <>
+              <button
+                type="button"
+                onClick={handleShare}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-green-700"
+              >
+                {copied ? <Check size={14} /> : <Share2 size={14} />}
+                {copied ? 'Link copiado!' : 'Compartilhar palpite'}
+              </button>
+              <button
+                type="button"
+                onClick={handleClear}
+                title="Limpar palpite (volta ao resultado real)"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs font-semibold text-gray-600 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                <Trash2 size={14} />
+              </button>
+            </>
+          )}
+        </div>
       </div>
       <div className="overflow-x-auto pb-2">
         <div className="flex gap-3 w-max mx-auto">
