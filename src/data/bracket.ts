@@ -29,7 +29,7 @@ export const ROUNDS: Round[] = [
         id: 'ro32-1',          // M73
         teamA: seed('2º do Grupo A', '2º A'),
         teamB: seed('2º do Grupo B', '2º B'),
-        date: '28 Jun', time: '13:00', city: 'Los Angeles',
+        date: '28 Jun', time: '16:00', city: 'Los Angeles',
         next: { matchId: 'ro16-2', slot: 'teamA' },
       },
       {
@@ -50,7 +50,7 @@ export const ROUNDS: Round[] = [
         id: 'ro32-4',          // M76
         teamA: seed('1º do Grupo C', '1º C'),
         teamB: seed('2º do Grupo F', '2º F'),
-        date: '29 Jun', time: '16:00', city: 'Houston',
+        date: '29 Jun', time: '14:00', city: 'Houston',
         next: { matchId: 'ro16-3', slot: 'teamA' },
       },
       {
@@ -64,7 +64,7 @@ export const ROUNDS: Round[] = [
         id: 'ro32-6',          // M78
         teamA: seed('2º do Grupo E', '2º E'),
         teamB: seed('2º do Grupo I', '2º I'),
-        date: '30 Jun', time: '16:00', city: 'Dallas',
+        date: '30 Jun', time: '14:00', city: 'Dallas',
         next: { matchId: 'ro16-3', slot: 'teamB' },
       },
       {
@@ -78,7 +78,7 @@ export const ROUNDS: Round[] = [
         id: 'ro32-8',          // M80
         teamA: seed('1º do Grupo L', '1º L'),
         teamB: seed('3º de E/H/I/J/K', '3º'),
-        date: '01 Jul', time: '15:00', city: 'Atlanta',
+        date: '01 Jul', time: '13:00', city: 'Atlanta',
         next: { matchId: 'ro16-4', slot: 'teamB' },
       },
       // ── direita do bracket ──
@@ -93,14 +93,14 @@ export const ROUNDS: Round[] = [
         id: 'ro32-10',         // M82
         teamA: seed('1º do Grupo G', '1º G'),
         teamB: seed('3º de A/E/H/I/J', '3º'),
-        date: '01 Jul', time: '19:00', city: 'Seattle',
+        date: '01 Jul', time: '17:00', city: 'Seattle',
         next: { matchId: 'ro16-6', slot: 'teamB' },
       },
       {
         id: 'ro32-11',         // M83
         teamA: seed('2º do Grupo K', '2º K'),
         teamB: seed('2º do Grupo L', '2º L'),
-        date: '02 Jul', time: '18:00', city: 'Toronto',
+        date: '02 Jul', time: '20:00', city: 'Toronto',
         next: { matchId: 'ro16-5', slot: 'teamA' },
       },
       {
@@ -114,7 +114,7 @@ export const ROUNDS: Round[] = [
         id: 'ro32-13',         // M85
         teamA: seed('1º do Grupo B', '1º B'),
         teamB: seed('3º de E/F/G/I/J', '3º'),
-        date: '02 Jul', time: '00:00', city: 'Vancouver',
+        date: '03 Jul', time: '00:00', city: 'Vancouver',
         next: { matchId: 'ro16-8', slot: 'teamA' },
       },
       {
@@ -135,7 +135,7 @@ export const ROUNDS: Round[] = [
         id: 'ro32-16',         // M88
         teamA: seed('2º do Grupo D', '2º D'),
         teamB: seed('2º do Grupo G', '2º G'),
-        date: '03 Jul', time: '17:00', city: 'Dallas',
+        date: '03 Jul', time: '15:00', city: 'Dallas',
         next: { matchId: 'ro16-7', slot: 'teamB' },
       },
     ],
@@ -155,7 +155,7 @@ export const ROUNDS: Round[] = [
       {
         id: 'ro16-2',          // M90
         teamA: null, teamB: null,
-        date: '04 Jul', time: '17:00', city: 'Houston',
+        date: '04 Jul', time: '14:00', city: 'Houston',
         next: { matchId: 'qf-1', slot: 'teamB' },
       },
       {
@@ -173,7 +173,7 @@ export const ROUNDS: Round[] = [
       {
         id: 'ro16-5',          // M93
         teamA: null, teamB: null,
-        date: '06 Jul', time: '18:00', city: 'Dallas',
+        date: '06 Jul', time: '16:00', city: 'Dallas',
         next: { matchId: 'qf-2', slot: 'teamA' },
       },
       {
@@ -185,7 +185,7 @@ export const ROUNDS: Round[] = [
       {
         id: 'ro16-7',          // M95
         teamA: null, teamB: null,
-        date: '07 Jul', time: '15:00', city: 'Atlanta',
+        date: '07 Jul', time: '13:00', city: 'Atlanta',
         next: { matchId: 'qf-4', slot: 'teamA' },
       },
       {
@@ -263,3 +263,16 @@ export const ROUNDS: Round[] = [
     ],
   },
 ];
+
+/** Mapeamento fixtureId (M73…M104) → bracketSlotId (ro32-1…final-1). */
+export const FIXTURE_TO_BRACKET_ID: Record<string, string> = {
+  M73: 'ro32-1',  M74: 'ro32-2',  M75: 'ro32-3',  M76: 'ro32-4',
+  M77: 'ro32-5',  M78: 'ro32-6',  M79: 'ro32-7',  M80: 'ro32-8',
+  M81: 'ro32-9',  M82: 'ro32-10', M83: 'ro32-11', M84: 'ro32-12',
+  M85: 'ro32-13', M86: 'ro32-14', M87: 'ro32-15', M88: 'ro32-16',
+  M89: 'ro16-1',  M90: 'ro16-2',  M91: 'ro16-3',  M92: 'ro16-4',
+  M93: 'ro16-5',  M94: 'ro16-6',  M95: 'ro16-7',  M96: 'ro16-8',
+  M97: 'qf-1',    M98: 'qf-2',    M99: 'qf-3',    M100: 'qf-4',
+  M101: 'sf-1',   M102: 'sf-2',
+  M104: 'final-1',
+};

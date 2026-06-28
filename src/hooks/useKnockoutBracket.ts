@@ -81,6 +81,8 @@ export type KnockoutState = 'pre' | 'in' | 'post';
 export interface KnockoutMatchData {
   teamA: BracketTeam | null; // seleção definida (senão null → mantém placeholder)
   teamB: BracketTeam | null;
+  slugA: string | null;     // slug PT-BR do time A (para link /team/:slug)
+  slugB: string | null;
   scoreA: number | null; // gols (ao vivo ou final)
   scoreB: number | null;
   winnerSlot: 'A' | 'B' | null; // só quando encerrado
@@ -102,14 +104,14 @@ export interface KnockoutBracketState {
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-/** Código FIFA da ESPN → BracketTeam (nome/bandeira PT-BR). null se for rótulo provisório. */
-function teamFromCode(code: string | undefined): BracketTeam | null {
+/** Código FIFA da ESPN → {team, slug}. null se for rótulo provisório. */
+function teamFromCode(code: string | undefined): { team: BracketTeam; slug: string } | null {
   if (!code) return null;
   const slug = slugForCode(code);
   if (!slug) return null;
   const d = getTeamDetail(slug);
   if (!d) return null;
-  return { name: d.team.name, flag: d.team.flag, isHost: d.team.isHost };
+  return { team: { name: d.team.name, flag: d.team.flag, isHost: d.team.isHost }, slug };
 }
 
 /** Índice rodada+cidade → confrontos locais (lista, p/ desempate por data). */
@@ -175,9 +177,13 @@ function parseEspn(
     let winnerSlot: 'A' | 'B' | null = null;
     if (state === 'post') winnerSlot = home?.winner ? 'A' : away?.winner ? 'B' : null;
 
+    const resolvedA = teamFromCode(home?.team?.abbreviation);
+    const resolvedB = teamFromCode(away?.team?.abbreviation);
     out[slotId] = {
-      teamA: teamFromCode(home?.team?.abbreviation),
-      teamB: teamFromCode(away?.team?.abbreviation),
+      teamA: resolvedA?.team ?? null,
+      slugA: resolvedA?.slug ?? null,
+      teamB: resolvedB?.team ?? null,
+      slugB: resolvedB?.slug ?? null,
       scoreA,
       scoreB,
       winnerSlot,

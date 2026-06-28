@@ -12,7 +12,9 @@ import { FIXTURES } from '../data/matches';
 import { AddToCalendarButton } from './AddToCalendarButton';
 import { useGroupScores } from '../hooks/useGroupScores';
 import { useLiveScores, type LiveScore } from '../hooks/useLiveScores';
+import { useKnockoutBracket, type KnockoutMatchData } from '../hooks/useKnockoutBracket';
 import { useGoalAlerts, type GoalAlertsState } from '../hooks/useGoalAlerts';
+import { FIXTURE_TO_BRACKET_ID } from '../data/bracket';
 import { MatchDetailsPanel } from './MatchDetailsPanel';
 import type { MatchPhase } from '../types';
 
@@ -43,18 +45,22 @@ function PhaseBadge({ phase }: { phase: MatchPhase }) {
 // ─── TeamCell ────────────────────────────────────────────────────────────────
 
 function TeamCell({ slug, name, flag, side }: { slug: string; name: string; flag: string; side: 'home' | 'away' }) {
+  const alignClass = side === 'home' ? 'text-right' : 'text-left';
   if (slug === 'tbd') {
+    const isKnown = flag !== '🏳️'; // time confirmado pela ESPN, slug ainda não resolvido
     return (
-      <div className={`flex flex-col items-center gap-1 min-w-0 flex-1 ${side === 'home' ? 'text-right' : 'text-left'}`}>
-        <span className="text-2xl leading-none opacity-60">{flag}</span>
-        <span className="text-[10px] text-gray-400 dark:text-gray-500 italic leading-tight text-center">{name}</span>
+      <div className={`flex flex-col items-center gap-1 min-w-0 flex-1 ${alignClass}`}>
+        <span className={`text-2xl leading-none ${isKnown ? '' : 'opacity-60'}`}>{flag}</span>
+        <span className={`text-[10px] leading-tight text-center ${isKnown ? 'font-semibold text-gray-800 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500 italic'}`}>
+          {name}
+        </span>
       </div>
     );
   }
   return (
     <Link
       to={`/team/${slug}`}
-      className={`flex flex-col items-center gap-1 min-w-0 flex-1 group ${side === 'home' ? 'text-right' : 'text-left'}`}
+      className={`flex flex-col items-center gap-1 min-w-0 flex-1 group ${alignClass}`}
     >
       <span className="text-2xl leading-none">{flag}</span>
       <span className="text-[10px] font-semibold text-gray-800 dark:text-gray-100 text-center truncate w-full group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors leading-tight">
@@ -505,9 +511,31 @@ function LiveStatusBar({ state, alerts }: { state: ReturnType<typeof useLiveScor
   );
 }
 
+/** Enriquece um fixture placeholder com os times reais vindos do bracket ESPN. */
+function applyBracketTeams(
+  match: MatchEntry,
+  byMatchId: Record<string, KnockoutMatchData>,
+): MatchEntry {
+  if (!match.isPlaceholder) return match;
+  const bracketId = FIXTURE_TO_BRACKET_ID[match.key];
+  if (!bracketId) return match;
+  const bd = byMatchId[bracketId];
+  if (!bd) return match;
+  return {
+    ...match,
+    homeTeam: bd.teamA?.name ?? match.homeTeam,
+    homeFlag: bd.teamA?.flag ?? match.homeFlag,
+    homeSlug: bd.slugA ?? match.homeSlug,
+    awayTeam: bd.teamB?.name ?? match.awayTeam,
+    awayFlag: bd.teamB?.flag ?? match.awayFlag,
+    awaySlug: bd.slugB ?? match.awaySlug,
+  };
+}
+
 export function GamesView() {
   const { getScore, setScore } = useGroupScores();
   const live = useLiveScores();
+  const { byMatchId: bracketByMatchId } = useKnockoutBracket();
   const teamNames = useMemo(
     () => Object.fromEntries(ALL_MATCHES.map((m) => [m.key, { home: m.homeTeam, away: m.awayTeam }])),
     [],
@@ -517,8 +545,10 @@ export function GamesView() {
   const koPhases = phases.filter((p) => KO_PHASES.includes(p.phase));
 
   const pastGames = ALL_MATCHES.filter((m) => m.status === 'past');
-  const todayGames = ALL_MATCHES.filter((m) => m.status === 'today');
-  const upcomingGames = ALL_MATCHES.filter((m) => m.status === 'future');
+  const todayGames = ALL_MATCHES.filter((m) => m.status === 'today')
+    .map((m) => applyBracketTeams(m, bracketByMatchId));
+  const upcomingGames = ALL_MATCHES.filter((m) => m.status === 'future')
+    .map((m) => applyBracketTeams(m, bracketByMatchId));
   const upcomingGroups = groupByShortDate(upcomingGames);
   const pastGroups = groupByShortDate([...pastGames].reverse());
   const hasAnyContent = ALL_MATCHES.length > 0;

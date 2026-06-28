@@ -603,7 +603,7 @@ export const FIXTURES: Fixture[] = [
   // ─── MATA-MATA — 32-avos (28 jun – 03 jul) ─────────────────────────────────
   {
     id: 'M73', phase: 'round-of-32',
-    date: '2026-06-28', time: '13:00',
+    date: '2026-06-28', time: '16:00',
     city: 'Los Angeles', venue: 'SoFi Stadium', country: 'EUA',
     homeTeam: '2º do Grupo A', awayTeam: '2º do Grupo B',
     homeSlug: 'tbd', awaySlug: 'tbd', homeFlag: '🏳️', awayFlag: '🏳️',
@@ -631,7 +631,7 @@ export const FIXTURES: Fixture[] = [
   },
   {
     id: 'M76', phase: 'round-of-32',
-    date: '2026-06-29', time: '16:00',
+    date: '2026-06-29', time: '14:00',
     city: 'Houston', venue: 'NRG Stadium', country: 'EUA',
     homeTeam: '1º do Grupo C', awayTeam: '2º do Grupo F',
     homeSlug: 'tbd', awaySlug: 'tbd', homeFlag: '🏳️', awayFlag: '🏳️',
@@ -650,7 +650,7 @@ export const FIXTURES: Fixture[] = [
   },
   {
     id: 'M78', phase: 'round-of-32',
-    date: '2026-06-30', time: '16:00',
+    date: '2026-06-30', time: '14:00',
     city: 'Arlington', venue: 'AT&T Stadium', country: 'EUA',
     homeTeam: '2º do Grupo E', awayTeam: '2º do Grupo I',
     homeSlug: 'tbd', awaySlug: 'tbd', homeFlag: '🏳️', awayFlag: '🏳️',
@@ -669,7 +669,7 @@ export const FIXTURES: Fixture[] = [
   },
   {
     id: 'M80', phase: 'round-of-32',
-    date: '2026-07-01', time: '15:00',
+    date: '2026-07-01', time: '13:00',
     city: 'Atlanta', venue: 'Mercedes-Benz Stadium', country: 'EUA',
     homeTeam: '1º do Grupo L', awayTeam: '3º de E/H/I/J/K',
     homeSlug: 'tbd', awaySlug: 'tbd', homeFlag: '🏳️', awayFlag: '🏳️',
@@ -689,7 +689,7 @@ export const FIXTURES: Fixture[] = [
   },
   {
     id: 'M82', phase: 'round-of-32',
-    date: '2026-07-01', time: '19:00',
+    date: '2026-07-01', time: '17:00',
     city: 'Seattle', venue: 'Lumen Field', country: 'EUA',
     homeTeam: '1º do Grupo G', awayTeam: '3º de A/E/H/I/J',
     homeSlug: 'tbd', awaySlug: 'tbd', homeFlag: '🏳️', awayFlag: '🏳️',
@@ -699,7 +699,7 @@ export const FIXTURES: Fixture[] = [
   },
   {
     id: 'M83', phase: 'round-of-32',
-    date: '2026-07-02', time: '18:00',
+    date: '2026-07-02', time: '20:00',
     city: 'Toronto', venue: 'BMO Field', country: 'Canadá',
     homeTeam: '2º do Grupo K', awayTeam: '2º do Grupo L',
     homeSlug: 'tbd', awaySlug: 'tbd', homeFlag: '🏳️', awayFlag: '🏳️',
@@ -746,7 +746,7 @@ export const FIXTURES: Fixture[] = [
   },
   {
     id: 'M88', phase: 'round-of-32',
-    date: '2026-07-03', time: '17:00',
+    date: '2026-07-03', time: '15:00',
     city: 'Arlington', venue: 'AT&T Stadium', country: 'EUA',
     homeTeam: '2º do Grupo D', awayTeam: '2º do Grupo G',
     homeSlug: 'tbd', awaySlug: 'tbd', homeFlag: '🏳️', awayFlag: '🏳️',
@@ -764,7 +764,7 @@ export const FIXTURES: Fixture[] = [
   },
   {
     id: 'M90', phase: 'round-of-16',
-    date: '2026-07-04', time: '17:00',
+    date: '2026-07-04', time: '14:00',
     city: 'Houston', venue: 'NRG Stadium', country: 'EUA',
     homeTeam: 'Vencedor do Jogo 73', awayTeam: 'Vencedor do Jogo 75',
     homeSlug: 'tbd', awaySlug: 'tbd', homeFlag: '🏳️', awayFlag: '🏳️',
@@ -785,7 +785,7 @@ export const FIXTURES: Fixture[] = [
   },
   {
     id: 'M93', phase: 'round-of-16',
-    date: '2026-07-06', time: '18:00',
+    date: '2026-07-06', time: '16:00',
     city: 'Arlington', venue: 'AT&T Stadium', country: 'EUA',
     homeTeam: 'Vencedor do Jogo 83', awayTeam: 'Vencedor do Jogo 84',
     homeSlug: 'tbd', awaySlug: 'tbd', homeFlag: '🏳️', awayFlag: '🏳️',
@@ -799,7 +799,7 @@ export const FIXTURES: Fixture[] = [
   },
   {
     id: 'M95', phase: 'round-of-16',
-    date: '2026-07-07', time: '15:00',
+    date: '2026-07-07', time: '13:00',
     city: 'Atlanta', venue: 'Mercedes-Benz Stadium', country: 'EUA',
     homeTeam: 'Vencedor do Jogo 86', awayTeam: 'Vencedor do Jogo 88',
     homeSlug: 'tbd', awaySlug: 'tbd', homeFlag: '🏳️', awayFlag: '🏳️',
