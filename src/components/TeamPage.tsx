@@ -991,79 +991,6 @@ export function TeamPage() {
           />
         </div>
 
-        {/* Fase de Grupos */}
-        {matches.length > 0 && (
-          <div>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
-              Fase de Grupos
-            </h3>
-            <div className="space-y-2">
-              {matches.map((g) => {
-                const isHome = g.homeSlug === slug;
-                const opponent = isHome ? g.awayTeam : g.homeTeam;
-                const opponentFlag = isHome ? g.awayFlag : g.homeFlag;
-                const opponentSlug = isHome ? g.awaySlug : g.homeSlug;
-                const live = getLive(g.id);
-                const hs = live?.home ?? g.homeScore;
-                const as = live?.away ?? g.awayScore;
-                const played = hs != null && as != null;
-                const myScore = isHome ? hs : as;
-                const oppScore = isHome ? as : hs;
-                const res = played ? (myScore! > oppScore! ? 'V' : myScore! < oppScore! ? 'D' : 'E') : null;
-                const future = isDateFuture(g.date ? new Date(`${g.date}T${g.time}:00-03:00`) : new Date(0));
-                const resColor =
-                  res === 'V' ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
-                  : res === 'D' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
-                  : res === 'E' ? 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-                  : '';
-                return (
-                  <div
-                    key={g.id}
-                    className={`flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2.5 shadow-sm dark:border-gray-700 dark:bg-gray-800 ${played && !live?.isLive ? 'opacity-80' : ''}`}
-                  >
-                    <span className="w-16 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                      {PHASE_LABEL(g)}
-                    </span>
-                    <Link
-                      to={`/team/${opponentSlug}`}
-                      className="flex min-w-0 flex-1 items-center gap-2 rounded-lg transition-colors hover:opacity-80"
-                    >
-                      <span className="text-xl leading-none">{opponentFlag}</span>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-gray-800 hover:underline dark:text-gray-200">{opponent}</p>
-                        <p className="text-[11px] text-gray-400 dark:text-gray-500">
-                          {isHome ? 'em casa' : 'fora'} · {formatDate(g.date)} · {g.city}
-                        </p>
-                      </div>
-                    </Link>
-                    {played ? (
-                      <div className="flex shrink-0 items-center gap-2">
-                        {live?.isLive && (
-                          <span className="flex items-center gap-1 text-[10px] font-bold text-red-500">
-                            <Radio size={10} className="animate-pulse" />{live.clock}
-                          </span>
-                        )}
-                        <span className="tabular-nums text-base font-extrabold text-gray-900 dark:text-gray-100">
-                          {myScore} <span className="text-gray-300 dark:text-gray-600">-</span> {oppScore}
-                        </span>
-                        {res && (
-                          <span className={`flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold ${resColor}`}>{res}</span>
-                        )}
-                      </div>
-                    ) : (
-                      <span className={`shrink-0 rounded px-2 py-0.5 text-xs font-semibold tabular-nums ${
-                        future ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-                      }`}>
-                        {g.time}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         {/* Eliminatórias */}
         {koMatches.length > 0 && (
           <div>
@@ -1132,6 +1059,79 @@ export function TeamPage() {
                         {isLive && bd?.clock && (
                           <span className="flex items-center gap-1 text-[10px] font-bold text-red-500">
                             <Radio size={10} className="animate-pulse" />{bd.clock}
+                          </span>
+                        )}
+                        <span className="tabular-nums text-base font-extrabold text-gray-900 dark:text-gray-100">
+                          {myScore} <span className="text-gray-300 dark:text-gray-600">-</span> {oppScore}
+                        </span>
+                        {res && (
+                          <span className={`flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold ${resColor}`}>{res}</span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className={`shrink-0 rounded px-2 py-0.5 text-xs font-semibold tabular-nums ${
+                        future ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                      }`}>
+                        {g.time}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Fase de Grupos */}
+        {matches.length > 0 && (
+          <div>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+              Fase de Grupos
+            </h3>
+            <div className="space-y-2">
+              {matches.map((g) => {
+                const isHome = g.homeSlug === slug;
+                const opponent = isHome ? g.awayTeam : g.homeTeam;
+                const opponentFlag = isHome ? g.awayFlag : g.homeFlag;
+                const opponentSlug = isHome ? g.awaySlug : g.homeSlug;
+                const live = getLive(g.id);
+                const hs = live?.home ?? g.homeScore;
+                const as = live?.away ?? g.awayScore;
+                const played = hs != null && as != null;
+                const myScore = isHome ? hs : as;
+                const oppScore = isHome ? as : hs;
+                const res = played ? (myScore! > oppScore! ? 'V' : myScore! < oppScore! ? 'D' : 'E') : null;
+                const future = isDateFuture(g.date ? new Date(`${g.date}T${g.time}:00-03:00`) : new Date(0));
+                const resColor =
+                  res === 'V' ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
+                  : res === 'D' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                  : res === 'E' ? 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                  : '';
+                return (
+                  <div
+                    key={g.id}
+                    className={`flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2.5 shadow-sm dark:border-gray-700 dark:bg-gray-800 ${played && !live?.isLive ? 'opacity-80' : ''}`}
+                  >
+                    <span className="w-16 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                      {PHASE_LABEL(g)}
+                    </span>
+                    <Link
+                      to={`/team/${opponentSlug}`}
+                      className="flex min-w-0 flex-1 items-center gap-2 rounded-lg transition-colors hover:opacity-80"
+                    >
+                      <span className="text-xl leading-none">{opponentFlag}</span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-gray-800 hover:underline dark:text-gray-200">{opponent}</p>
+                        <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                          {isHome ? 'em casa' : 'fora'} · {formatDate(g.date)} · {g.city}
+                        </p>
+                      </div>
+                    </Link>
+                    {played ? (
+                      <div className="flex shrink-0 items-center gap-2">
+                        {live?.isLive && (
+                          <span className="flex items-center gap-1 text-[10px] font-bold text-red-500">
+                            <Radio size={10} className="animate-pulse" />{live.clock}
                           </span>
                         )}
                         <span className="tabular-nums text-base font-extrabold text-gray-900 dark:text-gray-100">
