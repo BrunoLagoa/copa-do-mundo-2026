@@ -673,9 +673,18 @@ export function TeamPage() {
   const nextKoMatch = koMatches.find((f) => f.date >= todayBRT) ?? null;
 
   const liveMatch = matches.find((m) => getLive(m.id)?.isLive) ?? null;
-  const featuredMatch = liveMatch ?? nextMatch ?? nextKoMatch;
-  const featuredLive = featuredMatch ? getLive(featuredMatch.id) : null;
-  const featuredEntry = featuredMatch ? getEntry(featuredMatch.id) : null;
+  // Jogo de mata-mata ao vivo: o useLiveScores não enxerga fixtures com slug
+  // placeholder, então o estado ao vivo vem do bracket ESPN.
+  const liveKoMatch =
+    koMatches.find((f) => bracketByMatchId[FIXTURE_TO_BRACKET_ID[f.id] ?? '']?.isLive) ?? null;
+  const featuredMatch = liveMatch ?? liveKoMatch ?? nextMatch ?? nextKoMatch;
+  // Para grupos, placar/entrada vêm do scoreboard; para mata-mata, do bracket
+  // (mesmo endpoint da ESPN, já no formato LiveScore via `live`).
+  const featuredKo = featuredMatch
+    ? bracketByMatchId[FIXTURE_TO_BRACKET_ID[featuredMatch.id] ?? '']
+    : undefined;
+  const featuredLive = (featuredMatch ? getLive(featuredMatch.id) : null) ?? featuredKo?.live ?? null;
+  const featuredEntry = (featuredMatch ? getEntry(featuredMatch.id) : null) ?? featuredKo?.live ?? null;
 
   // Quando a escalação real chega, adota a formação do último jogo (se conhecida).
   const [autoFormation, setAutoFormation] = useState<string | null>(null);

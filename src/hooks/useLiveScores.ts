@@ -131,7 +131,7 @@ function statValue(stats: any[], name: string): number | null {
   return Number.isFinite(v) ? v : null;
 }
 
-function teamStats(competitor: any): TeamStats {
+export function teamStats(competitor: any): TeamStats {
   const st: any[] = competitor?.statistics ?? [];
   return {
     possession: statValue(st, 'possessionPct'),
@@ -142,7 +142,7 @@ function teamStats(competitor: any): TeamStats {
   };
 }
 
-function teamBrand(competitor: any): TeamBrand {
+export function teamBrand(competitor: any): TeamBrand {
   return {
     id: competitor?.team?.id != null ? String(competitor.team.id) : null,
     logo: competitor?.team?.logo ?? null,
@@ -152,7 +152,7 @@ function teamBrand(competitor: any): TeamBrand {
 }
 
 /** Monta o rótulo pt-BR do momento do jogo a partir de state/period/status. */
-function statusLabel(state: string, period: number, status: any, clock: string | null): string {
+export function statusLabel(state: string, period: number, status: any, clock: string | null): string {
   if (state === 'post') return 'Encerrado';
   if (state !== 'in') return '';
   const name: string = status?.type?.name ?? '';
@@ -161,6 +161,44 @@ function statusLabel(state: string, period: number, status: any, clock: string |
   if (period >= 3) return `Prorrogação${suffix}`;
   if (period === 2) return `2º tempo${suffix}`;
   return `1º tempo${suffix}`;
+}
+
+/**
+ * Monta um LiveScore a partir de dois competitors JÁ orientados ao nosso
+ * mandante/visitante (a ESPN pode inverter a ordem). Compartilhado entre o
+ * scoreboard de grupos (este hook) e o do mata-mata (useKnockoutBracket), que
+ * batem no mesmo endpoint e têm a mesma estrutura de evento.
+ */
+export function buildLiveScore(ourHome: any, ourAway: any, comp: any, e: any): LiveScore {
+  const state: string = e?.status?.type?.state; // 'pre' | 'in' | 'post'
+  const homeScore = parseInt(ourHome?.score, 10) || 0;
+  const awayScore = parseInt(ourAway?.score, 10) || 0;
+  const clock = state === 'in' ? (e?.status?.displayClock ?? null) : null;
+  const period: number = Number(e?.status?.period) || 1;
+  const v = comp?.venue;
+  const broadcasts: string[] = Array.isArray(comp?.broadcasts)
+    ? comp.broadcasts.flatMap((b: any) => (Array.isArray(b?.names) ? b.names : [])).filter(Boolean)
+    : [];
+  return {
+    home: homeScore,
+    away: awayScore,
+    clock,
+    isLive: state === 'in',
+    isFinished: state === 'post',
+    isPre: state === 'pre',
+    statusDetail: statusLabel(state, period, e?.status, clock),
+    period,
+    venue: v
+      ? { name: v?.fullName ?? null, city: v?.address?.city ?? null, country: v?.address?.country ?? null }
+      : null,
+    homeForm: ourHome?.form ?? null,
+    awayForm: ourAway?.form ?? null,
+    stats: { home: teamStats(ourHome), away: teamStats(ourAway) },
+    broadcasts,
+    espnEventId: e?.id != null ? String(e.id) : null,
+    homeBrand: teamBrand(ourHome),
+    awayBrand: teamBrand(ourAway),
+  };
 }
 
 /** Converte a resposta da ESPN num mapa fixtureId → LiveScore. */
@@ -172,8 +210,6 @@ function parseEspn(json: any, pairIndex: Map<string, FixtureRef[]>): Record<stri
     const comp = e?.competitions?.[0];
     const cs: any[] = comp?.competitors ?? [];
     if (cs.length < 2) continue;
-
-    const state: string = e?.status?.type?.state; // 'pre' | 'in' | 'post'
 
     const [a, b] = cs;
     const ca: string | undefined = a?.team?.abbreviation;
@@ -189,41 +225,11 @@ function parseEspn(json: any, pairIndex: Map<string, FixtureRef[]>): Record<stri
     if (!fx) continue;
 
     // Orienta tudo para o NOSSO mandante/visitante (a ESPN pode inverter).
-    const scoreA = parseInt(a?.score, 10) || 0;
-    const scoreB = parseInt(b?.score, 10) || 0;
     const aIsOurHome = ca === fx.homeCode;
     const ourHome = aIsOurHome ? a : b;
     const ourAway = aIsOurHome ? b : a;
-    const home = aIsOurHome ? scoreA : scoreB;
-    const away = aIsOurHome ? scoreB : scoreA;
 
-    const clock = state === 'in' ? (e?.status?.displayClock ?? null) : null;
-    const period: number = Number(e?.status?.period) || 1;
-    const v = comp?.venue;
-    const broadcasts: string[] = Array.isArray(comp?.broadcasts)
-      ? comp.broadcasts.flatMap((b: any) => (Array.isArray(b?.names) ? b.names : [])).filter(Boolean)
-      : [];
-
-    out[fx.id] = {
-      home,
-      away,
-      clock,
-      isLive: state === 'in',
-      isFinished: state === 'post',
-      isPre: state === 'pre',
-      statusDetail: statusLabel(state, period, e?.status, clock),
-      period,
-      venue: v
-        ? { name: v?.fullName ?? null, city: v?.address?.city ?? null, country: v?.address?.country ?? null }
-        : null,
-      homeForm: ourHome?.form ?? null,
-      awayForm: ourAway?.form ?? null,
-      stats: { home: teamStats(ourHome), away: teamStats(ourAway) },
-      broadcasts,
-      espnEventId: e?.id != null ? String(e.id) : null,
-      homeBrand: teamBrand(ourHome),
-      awayBrand: teamBrand(ourAway),
-    };
+    out[fx.id] = buildLiveScore(ourHome, ourAway, comp, e);
   }
   return out;
 }

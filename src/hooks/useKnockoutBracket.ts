@@ -17,6 +17,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { BracketTeam } from '../types';
+import { buildLiveScore, type LiveScore } from './useLiveScores';
 import { ROUNDS } from '../data/bracket';
 import { slugForCode } from '../data/teamCodes';
 import { getTeamDetail } from '../data/teams';
@@ -91,6 +92,13 @@ export interface KnockoutMatchData {
   isPenalty: boolean; // empate no tempo normal decidido nos pênaltis
   clock: string | null; // ex. "67'" — só ao vivo
   espnEventId: string | null;
+  /**
+   * Placar ao vivo no formato compartilhado com o scoreboard de grupos. O
+   * useLiveScores ignora fixtures de mata-mata (slugs placeholder), então é por
+   * aqui que o callout "ao vivo" e o painel de detalhes (useMatchDetails) recebem
+   * os dados dos jogos eliminatórios. `home`/`away` = lado A/B do confronto.
+   */
+  live: LiveScore;
 }
 
 export interface KnockoutBracketState {
@@ -192,6 +200,7 @@ function parseEspn(
       isPenalty: state === 'post' && scoreA != null && scoreA === scoreB,
       clock: state === 'in' ? e?.status?.displayClock ?? null : null,
       espnEventId: e?.id != null ? String(e.id) : null,
+      live: buildLiveScore(home, away, comp, e),
     };
   }
   return out;

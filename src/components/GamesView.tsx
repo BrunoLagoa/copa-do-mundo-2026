@@ -600,6 +600,9 @@ export function GamesView() {
     const liveScore = live.getLive(m.key);
     // Entrada da ESPN em qualquer estado (inclui futuros) → habilita "Detalhes".
     const metaEntry = live.getEntry(m.key);
+    // Mata-mata: o useLiveScores ignora fixtures com slug placeholder, então o
+    // placar ao vivo e os detalhes dos jogos eliminatórios vêm do bracket ESPN.
+    const koLive = bracketByMatchId[FIXTURE_TO_BRACKET_ID[m.key] ?? '']?.live ?? null;
 
     return {
       displayHome,
@@ -607,8 +610,10 @@ export function GamesView() {
       onChangeHome: (v: number) => setScore(m.key, v, saved?.away ?? 0),
       onChangeAway: (v: number) => setScore(m.key, saved?.home ?? 0, v),
       onSaveScore: (home: number, away: number) => setScore(m.key, home, away),
-      live: liveScore,
-      meta: metaEntry,
+      // Placar autoritativo só quando o mata-mata está ao vivo (não sobrescreve
+      // o card de jogos futuros/passados editáveis).
+      live: liveScore ?? (koLive?.isLive ? koLive : null),
+      meta: metaEntry ?? koLive,
     };
   }
 
