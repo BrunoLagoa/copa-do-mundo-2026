@@ -7,6 +7,7 @@ import {
   type Resolved,
 } from './animate-ui/effects/theme-toggler';
 import { useLiveScores } from '../hooks/useLiveScores';
+import { useKnockoutBracket } from '../hooks/useKnockoutBracket';
 
 /** Países-sede, exibidos como chips com bandeira. */
 const HOSTS = [
@@ -40,7 +41,13 @@ function tournamentCountdown(): string | null {
 
 export function Header() {
   const { theme, resolvedTheme, setTheme } = useTheme();
-  const { liveCount, available } = useLiveScores();
+  // Jogos ao vivo vêm de duas fontes: fase de grupos (useLiveScores) e
+  // mata-mata (useKnockoutBracket, pois o useLiveScores ignora os fixtures
+  // com slugs placeholder das eliminatórias). Somamos as duas contagens.
+  const groups = useLiveScores();
+  const knockout = useKnockoutBracket();
+  const liveCount = groups.liveCount + knockout.liveCount;
+  const available = groups.available || knockout.available;
   const countdown = tournamentCountdown();
 
   return (
