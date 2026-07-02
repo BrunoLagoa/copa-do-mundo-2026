@@ -565,7 +565,10 @@ export function GamesView() {
   // Mata-mata achatado em grupos-de-data (fase → data), p/ paginar por DATA
   // como as outras seções, mas mantendo o cabeçalho da fase quando ela muda.
   const koDateGroups = koPhases.flatMap((p) =>
-    groupByShortDate(ALL_MATCHES.filter((m) => m.phase === p.phase)).map((g) => ({
+    groupByShortDate(
+      ALL_MATCHES.filter((m) => m.phase === p.phase)
+        .map((m) => applyBracketTeams(m, bracketByMatchId)),
+    ).map((g) => ({
       phase: p.phase,
       label: p.label,
       count: p.fixtures.length,
