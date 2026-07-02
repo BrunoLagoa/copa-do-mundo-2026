@@ -544,7 +544,8 @@ export function GamesView() {
   const phases = getFixturesByPhase();
   const koPhases = phases.filter((p) => KO_PHASES.includes(p.phase));
 
-  const pastGames = ALL_MATCHES.filter((m) => m.status === 'past');
+  const pastGames = ALL_MATCHES.filter((m) => m.status === 'past')
+    .map((m) => applyBracketTeams(m, bracketByMatchId));
   const todayGames = ALL_MATCHES.filter((m) => m.status === 'today')
     .map((m) => applyBracketTeams(m, bracketByMatchId));
   const upcomingGames = ALL_MATCHES.filter((m) => m.status === 'future')
@@ -602,7 +603,15 @@ export function GamesView() {
     const metaEntry = live.getEntry(m.key);
     // Mata-mata: o useLiveScores ignora fixtures com slug placeholder, então o
     // placar ao vivo e os detalhes dos jogos eliminatórios vêm do bracket ESPN.
-    const koLive = bracketByMatchId[FIXTURE_TO_BRACKET_ID[m.key] ?? '']?.live ?? null;
+    const ko = bracketByMatchId[FIXTURE_TO_BRACKET_ID[m.key] ?? ''] ?? null;
+    const koLive = ko?.live ?? null;
+
+    // Jogo eliminatório encerrado: o placar final vem do bracket (fixtures de
+    // mata-mata não têm homeScore/awayScore estático nem entrada no useLiveScores).
+    if (m.status === 'past' && displayHome === null && ko?.state === 'post') {
+      displayHome = ko.scoreA;
+      displayAway = ko.scoreB;
+    }
 
     return {
       displayHome,
