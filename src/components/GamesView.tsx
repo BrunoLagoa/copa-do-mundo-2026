@@ -89,14 +89,11 @@ interface ScoreCenterProps {
   /** Placar efetivo a exibir (localStorage tem prioridade sobre matches.ts) */
   displayHome: number | null;
   displayAway: number | null;
-  /** Apenas para jogos de hoje — inputs editáveis contínuos */
-  onChangeHome: (v: number) => void;
-  onChangeAway: (v: number) => void;
   /** Placar ao vivo (proxy). Quando presente, é autoritativo e read-only. */
   live?: LiveScore | null;
 }
 
-function ScoreCenter({ match, displayHome, displayAway, onChangeHome, onChangeAway, live }: ScoreCenterProps) {
+function ScoreCenter({ match, displayHome, displayAway, live }: ScoreCenterProps) {
   const { status, time, date } = match;
 
   // Placar ao vivo (real) — autoritativo: sobrepõe inputs/placar manual.
@@ -163,36 +160,25 @@ function ScoreCenter({ match, displayHome, displayAway, onChangeHome, onChangeAw
     );
   }
 
-  // Jogo de hoje — inputs editáveis contínuos.
+  // Jogo de hoje — placar somente leitura (a fonte é o placar ao vivo da ESPN).
   // O horário do jogo importa: antes do apito é "Hoje · HH:MM"; depois do
   // pontapé (sem placar ao vivo da ESPN casado) o card precisa refletir que a
   // bola já rolou — "Em andamento" enquanto pode estar jogando e "Encerrado"
   // quando claramente acabou — em vez de fingir um jogo que ainda não começou.
   if (status === 'today') {
     const phase = todayKickoffPhase(match.parsedDate);
+    const hasScore = displayHome !== null && displayAway !== null;
     return (
       <div className="flex flex-col items-center gap-1 px-1 shrink-0">
-        <div className="flex items-center gap-1">
-          <input
-            type="number"
-            min={0}
-            max={99}
-            value={displayHome ?? ''}
-            onChange={(e) => onChangeHome(Math.max(0, parseInt(e.target.value, 10) || 0))}
-            className="w-9 text-center text-base font-bold tabular-nums rounded border border-green-400 dark:border-green-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 py-0.5"
-            aria-label="Gols mandante"
-          />
-          <span className="text-sm text-gray-400 dark:text-gray-500 font-bold">×</span>
-          <input
-            type="number"
-            min={0}
-            max={99}
-            value={displayAway ?? ''}
-            onChange={(e) => onChangeAway(Math.max(0, parseInt(e.target.value, 10) || 0))}
-            className="w-9 text-center text-base font-bold tabular-nums rounded border border-green-400 dark:border-green-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 py-0.5"
-            aria-label="Gols visitante"
-          />
-        </div>
+        {hasScore ? (
+          <div className="flex items-center gap-1.5">
+            <span className="text-xl font-bold tabular-nums text-gray-900 dark:text-gray-100">{displayHome}</span>
+            <span className="text-sm text-gray-400 dark:text-gray-600 font-bold">×</span>
+            <span className="text-xl font-bold tabular-nums text-gray-900 dark:text-gray-100">{displayAway}</span>
+          </div>
+        ) : (
+          <span className="text-lg font-bold text-gray-300 dark:text-gray-600">— × —</span>
+        )}
         {phase === 'over' ? (
           <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">Encerrado</span>
         ) : phase === 'live' ? (
@@ -299,14 +285,12 @@ interface MatchCardProps {
   match: MatchEntry;
   displayHome: number | null;
   displayAway: number | null;
-  onChangeHome: (v: number) => void;
-  onChangeAway: (v: number) => void;
   onSaveScore: (home: number, away: number) => void;
   live?: LiveScore | null;
   meta?: LiveScore | null;
 }
 
-function MatchCard({ match, displayHome, displayAway, onChangeHome, onChangeAway, onSaveScore, live, meta }: MatchCardProps) {
+function MatchCard({ match, displayHome, displayAway, onSaveScore, live, meta }: MatchCardProps) {
   const [editing, setEditing] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const isPast = match.status === 'past';
@@ -361,8 +345,6 @@ function MatchCard({ match, displayHome, displayAway, onChangeHome, onChangeAway
           match={match}
           displayHome={displayHome}
           displayAway={displayAway}
-          onChangeHome={onChangeHome}
-          onChangeAway={onChangeAway}
           live={live}
         />
         <TeamCell slug={match.awaySlug} name={match.awayTeam} flag={match.awayFlag} side="away" />
@@ -427,8 +409,6 @@ function groupByShortDate(matches: MatchEntry[]): { date: string; games: MatchEn
 type CardPropsGetter = (m: MatchEntry) => {
   displayHome: number | null;
   displayAway: number | null;
-  onChangeHome: (v: number) => void;
-  onChangeAway: (v: number) => void;
   onSaveScore: (home: number, away: number) => void;
   live: LiveScore | null;
   meta: LiveScore | null;
@@ -647,8 +627,6 @@ export function GamesView() {
     return {
       displayHome,
       displayAway,
-      onChangeHome: (v: number) => setScore(m.key, v, saved?.away ?? 0),
-      onChangeAway: (v: number) => setScore(m.key, saved?.home ?? 0, v),
       onSaveScore: (home: number, away: number) => setScore(m.key, home, away),
       // Placar autoritativo só quando o mata-mata está ao vivo (não sobrescreve
       // o card de jogos futuros/passados editáveis).
