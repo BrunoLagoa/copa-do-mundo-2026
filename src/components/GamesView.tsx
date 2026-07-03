@@ -70,6 +70,18 @@ function TeamCell({ slug, name, flag, side }: { slug: string; name: string; flag
   );
 }
 
+// ─── Fase de um jogo de hoje pelo horário ────────────────────────────────────
+
+/** Onde o jogo de hoje está em relação ao seu pontapé inicial.
+ *  `upcoming` = ainda não começou · `live` = pode estar rolando ·
+ *  `over` = já passou tempo suficiente (~2h30) para ter acabado. */
+function todayKickoffPhase(parsedDate: Date): 'upcoming' | 'live' | 'over' {
+  const since = Date.now() - parsedDate.getTime();
+  if (since <= 0) return 'upcoming';
+  if (since > 150 * 60_000) return 'over'; // 90' + intervalo + acréscimos + prorrogação/pênaltis
+  return 'live';
+}
+
 // ─── ScoreCenter ─────────────────────────────────────────────────────────────
 
 interface ScoreCenterProps {
@@ -151,8 +163,13 @@ function ScoreCenter({ match, displayHome, displayAway, onChangeHome, onChangeAw
     );
   }
 
-  // Jogo de hoje — inputs editáveis contínuos
+  // Jogo de hoje — inputs editáveis contínuos.
+  // O horário do jogo importa: antes do apito é "Hoje · HH:MM"; depois do
+  // pontapé (sem placar ao vivo da ESPN casado) o card precisa refletir que a
+  // bola já rolou — "Em andamento" enquanto pode estar jogando e "Encerrado"
+  // quando claramente acabou — em vez de fingir um jogo que ainda não começou.
   if (status === 'today') {
+    const phase = todayKickoffPhase(match.parsedDate);
     return (
       <div className="flex flex-col items-center gap-1 px-1 shrink-0">
         <div className="flex items-center gap-1">
@@ -176,7 +193,16 @@ function ScoreCenter({ match, displayHome, displayAway, onChangeHome, onChangeAw
             aria-label="Gols visitante"
           />
         </div>
-        <span className="text-[9px] text-green-600 dark:text-green-400 uppercase tracking-wider font-semibold">Hoje · {time} BRT</span>
+        {phase === 'over' ? (
+          <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">Encerrado</span>
+        ) : phase === 'live' ? (
+          <span className="inline-flex items-center gap-1 text-[9px] text-red-600 dark:text-red-400 uppercase tracking-wider font-semibold">
+            <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+            Em andamento · {time}
+          </span>
+        ) : (
+          <span className="text-[9px] text-green-600 dark:text-green-400 uppercase tracking-wider font-semibold">Hoje · {time} BRT</span>
+        )}
         <span className="text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">{date}</span>
       </div>
     );
@@ -611,7 +637,9 @@ export function GamesView() {
 
     // Jogo eliminatório encerrado: o placar final vem do bracket (fixtures de
     // mata-mata não têm homeScore/awayScore estático nem entrada no useLiveScores).
-    if (m.status === 'past' && displayHome === null && ko?.state === 'post') {
+    // Vale para "hoje" também: um jogo de hoje que já terminou precisa mostrar o
+    // placar final, não inputs vazios.
+    if (displayHome === null && ko?.state === 'post') {
       displayHome = ko.scoreA;
       displayAway = ko.scoreB;
     }
