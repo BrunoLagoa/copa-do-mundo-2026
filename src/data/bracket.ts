@@ -249,6 +249,20 @@ export const ROUNDS: Round[] = [
     ],
   },
 
+  // ─── Disputa do 3º lugar (1 jogo, 18 jul) ─────────────────────────────
+  {
+    id: 'third',
+    label: '3º lugar',
+    matches: [
+      {
+        id: 'third-1',        // M103 — perdedores das semifinais
+        teamA: null, teamB: null,
+        date: '18 Jul', time: '18:00', city: 'Miami',
+        next: null,
+      },
+    ],
+  },
+
   // ─── Final (1 jogo, 19 jul) ───────────────────────────────────────────
   {
     id: 'final',
@@ -274,5 +288,6 @@ export const FIXTURE_TO_BRACKET_ID: Record<string, string> = {
   M93: 'ro16-5',  M94: 'ro16-6',  M95: 'ro16-7',  M96: 'ro16-8',
   M97: 'qf-1',    M98: 'qf-2',    M99: 'qf-3',    M100: 'qf-4',
   M101: 'sf-1',   M102: 'sf-2',
+  M103: 'third-1',
   M104: 'final-1',
 };

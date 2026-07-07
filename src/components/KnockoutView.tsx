@@ -3,15 +3,10 @@ import { RefreshCw, AlertCircle } from 'lucide-react';
 import type { BracketTeam, BracketMatch, Round } from '../types';
 import { ROUNDS } from '../data/bracket';
 import { ResultMatchCard } from './ResultMatchCard';
+import { BracketBoard } from './BracketBoard';
 import { useKnockoutBracket } from '../hooks/useKnockoutBracket';
 import type { KnockoutMatchData } from '../hooks/useKnockoutBracket';
-import {
-  deriveRounds,
-  overlayTeams,
-  buildBracketColumns,
-  COLUMN_LAYOUT_PRESETS,
-  COLUMN_MATCH_OFFSETS,
-} from '../utils/bracketUtils';
+import { deriveRounds, overlayTeams } from '../utils/bracketUtils';
 
 // ─── ESPN → bracket ───────────────────────────────────────────────────────────
 
@@ -33,51 +28,6 @@ function winnersFromEspn(
   return winners;
 }
 
-// ─── ScoreRoundColumn ─────────────────────────────────────────────────────────
-
-interface ResultRoundColumnProps {
-  round: Round;
-  byMatchId: Record<string, KnockoutMatchData>;
-  winners: Record<string, BracketTeam>;
-  topOffsetClassName?: string;
-  matchesGapClassName?: string;
-  matchOffsetClassNames?: string[];
-}
-
-function ResultRoundColumn({
-  round,
-  byMatchId,
-  winners,
-  topOffsetClassName = '',
-  matchesGapClassName = 'gap-3',
-  matchOffsetClassNames = [],
-}: ResultRoundColumnProps) {
-  const isFinalRound = round.id.includes('final') || round.label.toLowerCase() === 'final';
-  const columnClassName = isFinalRound
-    ? 'flex flex-col gap-2 w-[240px]'
-    : 'flex flex-col gap-2 w-[200px]';
-
-  return (
-    <div className={columnClassName}>
-      <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 text-center pb-1 border-b border-gray-100 dark:border-gray-700">
-        {round.label}
-      </h3>
-      <div className={`flex flex-col justify-start ${matchesGapClassName} ${topOffsetClassName}`}>
-        {round.matches.map((match, index) => (
-          <div key={match.id} className={matchOffsetClassNames[index] ?? ''}>
-            <ResultMatchCard
-              match={match}
-              result={byMatchId[match.id]}
-              winnerTeam={winners[match.id] ?? null}
-              isFinal={isFinalRound}
-            />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ─── KnockoutView ───────────────────────────────────────────────────────────
 
 export function KnockoutView() {
@@ -86,15 +36,20 @@ export function KnockoutView() {
   // Monta o quadro efetivo: injeta as seleções da ESPN e propaga os vencedores
   // reais rodada a rodada (ro32 → final). A ESPN é a fonte da verdade — por isso
   // re-injetamos os times dela a cada passo, sobrepondo a propagação interna.
-  const { displayColumns, allWinners } = useMemo(() => {
+  const { displayRounds, allWinners } = useMemo(() => {
     let rounds = overlayTeams(ROUNDS, byMatchId);
     let winners: Record<string, BracketTeam> = {};
     for (let pass = 0; pass < 5; pass++) {
       winners = winnersFromEspn(rounds, byMatchId);
       rounds = overlayTeams(deriveRounds(rounds, winners), byMatchId);
     }
-    return { displayColumns: buildBracketColumns(rounds), allWinners: winners };
+    return { displayRounds: rounds, allWinners: winners };
   }, [byMatchId]);
+
+  // A disputa do 3º lugar não entra no chaveamento (não tem "próxima rodada"):
+  // é renderizada à parte, como um confronto avulso entre os perdedores das semis.
+  const bracketRounds = displayRounds.filter((r) => r.id !== 'third');
+  const thirdMatch = displayRounds.find((r) => r.id === 'third')?.matches[0] ?? null;
 
   return (
     <section className="px-2 md:px-4 py-4 md:py-5">
@@ -133,21 +88,37 @@ export function KnockoutView() {
         </span>
       </div>
 
-      <div className="overflow-x-auto pb-2">
-        <div className="flex gap-3 w-max mx-auto">
-          {displayColumns.map((round, index) => (
-            <ResultRoundColumn
-              key={round.id}
-              round={round}
-              byMatchId={byMatchId}
-              winners={allWinners}
-              topOffsetClassName={COLUMN_LAYOUT_PRESETS[index]?.topOffset}
-              matchesGapClassName={COLUMN_LAYOUT_PRESETS[index]?.gap}
-              matchOffsetClassNames={[...(COLUMN_MATCH_OFFSETS[index] ?? [])]}
-            />
-          ))}
-        </div>
-      </div>
+      <BracketBoard
+        rounds={bracketRounds}
+        renderMatch={(match, isFinal) => (
+          <ResultMatchCard
+            match={match}
+            result={byMatchId[match.id]}
+            winnerTeam={allWinners[match.id] ?? null}
+            isFinal={isFinal}
+          />
+        )}
+        finalExtra={
+          thirdMatch && (
+            <div className="flex flex-col items-center gap-2">
+              <div className="flex flex-col items-center gap-0.5 text-center">
+                <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-orange-700 dark:text-orange-300">
+                  <span aria-hidden>🥉</span> Disputa do 3º lugar
+                </h3>
+                <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                  Perdedores das semifinais
+                </p>
+              </div>
+              <ResultMatchCard
+                match={thirdMatch}
+                result={byMatchId[thirdMatch.id]}
+                winnerTeam={allWinners[thirdMatch.id] ?? null}
+                isThird
+              />
+            </div>
+          )
+        }
+      />
     </section>
   );
 }

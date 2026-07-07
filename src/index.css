@@ -114,3 +114,57 @@
 		animation: none;
 	}
 }
+
+/* ── Chaveamento linear auto-alinhado (Eliminatórias / Simulador) ─────────────
+   As colunas têm a mesma altura; cada slot representa 1 par de confrontos e
+   distribui seus 2 cards a 25%/75%. O card da rodada seguinte cai no ponto
+   médio (50%). As conexões são pseudo-elementos proporcionais — sem números
+   mágicos, alinham em qualquer altura de card. */
+.bkt {
+	--bkt-gap: 1.75rem;   /* espaço entre colunas = onde as linhas são desenhadas */
+	--bkt-line: #cbd5e1;  /* slate-300 */
+	gap: var(--bkt-gap);
+}
+.dark .bkt {
+	--bkt-line: #475569;  /* slate-600 */
+}
+
+/* Respiro vertical entre cards (define a altura mínima da coluna mais cheia). */
+.bkt-cell {
+	padding-block: 0.4rem;
+}
+
+/* Linha de saída: do centro-direito de cada card, meia-distância para a direita. */
+.bkt-round:not(.bkt-round-last) .bkt-cell::after {
+	content: '';
+	position: absolute;
+	top: 50%;
+	left: 100%;
+	width: calc(var(--bkt-gap) / 2);
+	height: 2px;
+	background: var(--bkt-line);
+	transform: translateY(-50%);
+}
+
+/* Linha vertical: une os centros dos 2 cards do par (25%↔75% do slot). */
+.bkt-round:not(.bkt-round-last) .bkt-slot::after {
+	content: '';
+	position: absolute;
+	top: 25%;
+	bottom: 25%;
+	left: calc(100% + var(--bkt-gap) / 2);
+	width: 2px;
+	background: var(--bkt-line);
+}
+
+/* Linha de entrada: do ponto médio do par até o card da próxima rodada. */
+.bkt-round:not(.bkt-round-last) .bkt-slot::before {
+	content: '';
+	position: absolute;
+	top: 50%;
+	left: calc(100% + var(--bkt-gap) / 2);
+	width: calc(var(--bkt-gap) / 2);
+	height: 2px;
+	background: var(--bkt-line);
+	transform: translateY(-50%);
+}

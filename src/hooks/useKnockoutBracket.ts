@@ -35,8 +35,9 @@ const ROUND_BY_SLUG: Record<string, string> = {
   'round-of-16': 'ro16',
   quarterfinals: 'qf',
   semifinals: 'sf',
+  'third-place-match': 'third',
+  'third-place': 'third', // alias defensivo (a ESPN varia entre os dois slugs)
   final: 'final',
-  // 'third-place-match' não existe no nosso quadro → ignorado.
 };
 
 /** Cidade da ESPN (parte antes da vírgula) → cidade PT-BR do `bracket.ts`. */
