@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { BracketTeam, Round } from '../types';
 import { MatchCard } from './MatchCard';
 
@@ -8,6 +9,8 @@ interface RoundColumnProps {
   topOffsetClassName?: string;
   matchesGapClassName?: string;
   matchOffsetClassNames?: string[];
+  /** Conteúdo extra abaixo dos confrontos da coluna (ex.: disputa do 3º lugar). */
+  footer?: ReactNode;
 }
 
 export function RoundColumn({
@@ -17,6 +20,7 @@ export function RoundColumn({
   topOffsetClassName = '',
   matchesGapClassName = 'gap-3',
   matchOffsetClassNames = [],
+  footer,
 }: RoundColumnProps) {
   const isFinalRound = round.id.includes('final') || round.label.toLowerCase() === 'final';
   const columnClassName = isFinalRound ? 'flex flex-col gap-2 w-[240px]' : 'flex flex-col gap-2 w-[200px]';
@@ -38,6 +42,7 @@ export function RoundColumn({
           </div>
         ))}
       </div>
+      {footer}
     </div>
   );
 }

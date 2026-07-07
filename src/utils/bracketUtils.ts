@@ -104,8 +104,8 @@ export const COLUMN_LAYOUT_PRESETS = [
   { topOffset: 'pt-60 md:pt-72', gap: 'gap-14 md:gap-16' },
   // sf-left
   { topOffset: 'pt-96 md:pt-112', gap: 'gap-3' },
-  // final-center
-  { topOffset: 'pt-88 md:pt-104', gap: 'gap-3' },
+  // final-center — recua ~meia-altura para centralizar com os boxes das semis
+  { topOffset: 'pt-91 md:pt-104', gap: 'gap-3' },
   // sf-right
   { topOffset: 'pt-96 md:pt-112', gap: 'gap-3' },
   // qf-right

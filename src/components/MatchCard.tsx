@@ -5,6 +5,8 @@ interface MatchCardProps {
   winnerTeam: BracketTeam | null;
   onSelectWinner: (team: BracketTeam) => void;
   isFinal?: boolean;
+  /** Disputa do 3º lugar — visual bronze, tamanho intermediário. */
+  isThird?: boolean;
 }
 
 interface TeamButtonProps {
@@ -49,21 +51,34 @@ function TeamButton({ team, isWinner, disabled, onClick, isFinal = false }: Team
   );
 }
 
-export function MatchCard({ match, winnerTeam, onSelectWinner, isFinal = false }: MatchCardProps) {
+export function MatchCard({
+  match,
+  winnerTeam,
+  onSelectWinner,
+  isFinal = false,
+  isThird = false,
+}: MatchCardProps) {
   const bothEmpty = match.teamA === null && match.teamB === null;
   const finalCardWinnerAnimation = isFinal && winnerTeam ? 'final-card-champion-animate' : '';
   const cardClassName = isFinal
     ? `bg-gradient-to-br from-amber-50 to-white dark:from-amber-950/35 dark:to-gray-900 rounded-2xl border border-amber-300 dark:border-amber-700/70 shadow-md p-5 flex flex-col gap-2.5 ${finalCardWinnerAnimation}`
-    : 'bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3 flex flex-col gap-1.5';
+    : isThird
+      ? 'bg-gradient-to-br from-orange-50 to-white dark:from-orange-950/30 dark:to-gray-900 rounded-2xl border border-orange-300 dark:border-orange-800/60 w-full shadow-sm p-4 flex flex-col gap-2'
+      : 'bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm p-3 flex flex-col gap-1.5';
   const metaClassName = isFinal
     ? 'flex items-center justify-between text-sm text-amber-700 dark:text-amber-300 mb-0.5 font-medium'
-    : 'flex items-center justify-between text-xs text-gray-400 dark:text-gray-500 mb-0.5';
-  const timeClass = isFinal
-    ? 'text-amber-700 dark:text-amber-300 font-bold tabular-nums'
-    : 'text-gray-700 dark:text-gray-200 font-bold tabular-nums';
+    : isThird
+      ? 'flex items-center justify-between text-xs text-orange-700 dark:text-orange-300/90 mb-0.5 font-medium'
+      : 'flex items-center justify-between text-xs text-gray-400 dark:text-gray-500 mb-0.5';
+  const timeClass =
+    isFinal || isThird
+      ? 'text-amber-700 dark:text-amber-300 font-bold tabular-nums'
+      : 'text-gray-700 dark:text-gray-200 font-bold tabular-nums';
   const vsClassName = isFinal
     ? 'text-center text-sm text-amber-500 dark:text-amber-400 font-semibold'
-    : 'text-center text-xs text-gray-300 dark:text-gray-600 font-medium';
+    : isThird
+      ? 'text-center text-xs text-orange-400 dark:text-orange-500/80 font-medium'
+      : 'text-center text-xs text-gray-300 dark:text-gray-600 font-medium';
 
   return (
     <div className={cardClassName}>

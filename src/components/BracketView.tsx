@@ -4,6 +4,7 @@ import { Check, Share2, Trash2, RefreshCw } from 'lucide-react';
 import type { BracketTeam, BracketMatch, Round } from '../types';
 import { ROUNDS } from '../data/bracket';
 import { RoundColumn } from './RoundColumn';
+import { MatchCard } from './MatchCard';
 import {
   collectDependents,
   deriveRounds,
@@ -67,7 +68,7 @@ export function BracketView() {
   // Quadro efetivo: base = times reais da ESPN; propaga vencedores (palpite +
   // resultado real) rodada a rodada. A propagação SOBREPÕE a base da ESPN nos
   // slots futuros — por isso o palpite do usuário "manda" daí pra frente.
-  const { displayColumns, winners, matchIndex } = useMemo(() => {
+  const { displayColumns, winners, matchIndex, thirdMatch } = useMemo(() => {
     const base = overlayTeams(ROUNDS, byMatchId);
     let rounds: Round[] = base;
     let w: Record<string, BracketTeam> = {};
@@ -84,7 +85,23 @@ export function BracketView() {
     }
     const index: Record<string, BracketMatch> = {};
     for (const r of rounds) for (const m of r.matches) index[m.id] = m;
-    return { displayColumns: buildBracketColumns(rounds), winners: w, matchIndex: index };
+
+    // Disputa do 3º lugar: os perdedores das semifinais (segundo o palpite
+    // efetivo) se enfrentam. Só é definido quando ambas as semis têm vencedor.
+    const loserOf = (m: BracketMatch | undefined): BracketTeam | null => {
+      const win = m && w[m.id];
+      if (!m || !win || !m.teamA || !m.teamB) return null;
+      return win.name === m.teamA.name ? m.teamB : m.teamA;
+    };
+    const thirdSlot = index['third-1'];
+    let third: BracketMatch | null = null;
+    if (thirdSlot) {
+      third = { ...thirdSlot, teamA: loserOf(index['sf-1']), teamB: loserOf(index['sf-2']) };
+      index['third-1'] = third; // pickWinner precisa dos times para registrar o palpite
+      const bronze = pickWinner(third, byMatchId['third-1'], picks);
+      if (bronze) w = { ...w, 'third-1': bronze };
+    }
+    return { displayColumns: buildBracketColumns(rounds), winners: w, matchIndex: index, thirdMatch: third };
   }, [byMatchId, picks]);
 
   const pickCount = Object.keys(picks).length;
@@ -185,6 +202,26 @@ export function BracketView() {
               topOffsetClassName={COLUMN_LAYOUT_PRESETS[index]?.topOffset}
               matchesGapClassName={COLUMN_LAYOUT_PRESETS[index]?.gap}
               matchOffsetClassNames={[...(COLUMN_MATCH_OFFSETS[index] ?? [])]}
+              footer={
+                round.id === 'final-center' && thirdMatch ? (
+                  <div className="mt-4 flex flex-col items-center gap-2">
+                    <div className="flex flex-col items-center gap-0.5 text-center">
+                      <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-orange-700 dark:text-orange-300">
+                        <span aria-hidden>🥉</span> Disputa do 3º lugar
+                      </h3>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500">
+                        Perdedores das semifinais
+                      </p>
+                    </div>
+                    <MatchCard
+                      match={thirdMatch}
+                      winnerTeam={winners['third-1'] ?? null}
+                      onSelectWinner={(team) => handleSelectWinner('third-1', team)}
+                      isThird
+                    />
+                  </div>
+                ) : undefined
+              }
             />
           ))}
         </div>
