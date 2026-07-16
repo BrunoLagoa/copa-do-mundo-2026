@@ -35,8 +35,11 @@ const ROUND_BY_SLUG: Record<string, string> = {
   'round-of-16': 'ro16',
   quarterfinals: 'qf',
   semifinals: 'sf',
+  // A ESPN usa "3rd-place-match" (com dígito). Os "third-*" são aliases
+  // defensivos — não custam nada e cobrem uma eventual troca de grafia.
+  '3rd-place-match': 'third',
   'third-place-match': 'third',
-  'third-place': 'third', // alias defensivo (a ESPN varia entre os dois slugs)
+  'third-place': 'third',
   final: 'final',
 };
 
