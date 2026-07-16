@@ -3,7 +3,7 @@ import type { Fixture, GroupId, MatchPhase } from '../types';
 
 
 /** ISO "2026-06-11" + "HH:MM" BRT → Date em horário local do browser. */
-function parseFixtureDateTime(f: Fixture): Date {
+export function parseFixtureDateTime(f: Fixture): Date {
   // BRT (UTC-3) → soma 3h para obter UTC, depois Date aplica offset local.
   const [y, m, d] = f.date.split('-').map(Number);
   const [hh, mm] = f.time.split(':').map(Number);
@@ -56,6 +56,11 @@ export function getGroupMatches(group: GroupId): Fixture[] {
 
 export function getNextTeamMatch(slug: string): Fixture | null {
   return getTeamMatches(slug).find(isFixtureFuture) ?? null;
+}
+
+/** A grande final (M104) — fonte do kickoff usado na contagem regressiva. */
+export function getFinalFixture(): Fixture | null {
+  return FIXTURES.find((f) => f.phase === 'final') ?? null;
 }
 
 // ─── Agrupamentos ───────────────────────────────────────────────────────────
@@ -155,7 +160,7 @@ const MONTH_PT: Record<number, string> = {
   6: 'Jul', 7: 'Ago', 8: 'Set', 9: 'Out', 10: 'Nov', 11: 'Dez',
 };
 
-function formatShortDate(iso: string): string {
+export function formatShortDate(iso: string): string {
   const [, mm, dd] = iso.split('-');
   return `${parseInt(dd, 10)} ${MONTH_PT[parseInt(mm, 10) - 1]}`;
 }

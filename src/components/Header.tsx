@@ -8,6 +8,7 @@ import {
 } from './animate-ui/effects/theme-toggler';
 import { useLiveScores } from '../hooks/useLiveScores';
 import { useKnockoutBracket } from '../hooks/useKnockoutBracket';
+import { FinalCountdown } from './FinalCountdown';
 
 /** Países-sede, exibidos como chips com bandeira. */
 const HOSTS = [
@@ -19,26 +20,6 @@ const HOSTS = [
 /** Fatos do torneio (estáticos) — chips de contexto. */
 const STATS = ['48 seleções', '104 jogos', '16 sedes'];
 
-/**
- * Contagem em dias relativa ao torneio (11/jun – 19/jul 2026): "Começa em…"
- * antes do início, "Final em…" durante, e nada após a final.
- */
-function tournamentCountdown(): string | null {
-  const now = new Date();
-  const start = new Date('2026-06-11T00:00:00');
-  const final = new Date('2026-07-19T23:59:59');
-  const day = 86_400_000;
-  if (now < start) {
-    const d = Math.ceil((start.getTime() - now.getTime()) / day);
-    return `Começa em ${d} ${d === 1 ? 'dia' : 'dias'}`;
-  }
-  if (now <= final) {
-    const d = Math.ceil((final.getTime() - now.getTime()) / day);
-    return d <= 1 ? 'Reta final' : `Final em ${d} dias`;
-  }
-  return null;
-}
-
 export function Header() {
   const { theme, resolvedTheme, setTheme } = useTheme();
   // Jogos ao vivo vêm de duas fontes: fase de grupos (useLiveScores) e
@@ -48,7 +29,6 @@ export function Header() {
   const knockout = useKnockoutBracket();
   const liveCount = groups.liveCount + knockout.liveCount;
   const available = groups.available || knockout.available;
-  const countdown = tournamentCountdown();
 
   return (
     <header className="relative overflow-hidden bg-gradient-to-br from-emerald-600 via-green-700 to-green-800 text-white dark:from-emerald-950 dark:via-green-950 dark:to-gray-950">
@@ -137,7 +117,7 @@ export function Header() {
           ))}
         </div>
 
-        {/* estatísticas + contagem regressiva */}
+        {/* estatísticas */}
         <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5">
           {STATS.map((s) => (
             <span
@@ -147,12 +127,10 @@ export function Header() {
               {s}
             </span>
           ))}
-          {countdown && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/15 px-2.5 py-1 text-[11px] font-bold text-amber-200 ring-1 ring-amber-300/30">
-              ⏱ {countdown}
-            </span>
-          )}
         </div>
+
+        {/* contagem regressiva até o apito inicial da final */}
+        <FinalCountdown />
       </div>
 
       {/* linha dourada (acento de campeonato) */}
